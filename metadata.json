@@ -1,0 +1,6 @@
+{
+  "name": "Eagle Business Manager",
+  "description": "An all-in-one business management platform and PWA for small businesses, featuring inventory, sales, invoicing, customer management, reports, and a protected administrator portal.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

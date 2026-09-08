@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="eagleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a" />
+      <stop offset="50%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.3" />
+    </filter>
+  </defs>
+  
+  <!-- Background Circle/Rounded Square with safe area padding -->
+  <rect width="512" height="512" rx="112" fill="#0f172a" />
+  
+  <!-- Subtle inner ambient glow -->
+  <circle cx="256" cy="256" r="210" fill="url(#eagleGrad)" opacity="0.15" />
+  
+  <!-- Eagle Crest / Geometric Wings & Head -->
+  <g transform="translate(256, 256)" filter="url(#shadow)">
+    <!-- Right Wing Feather 1 -->
+    <path d="M 0 -70 C 50 -130, 150 -130, 180 -50 C 130 -30, 60 -40, 0 -20 Z" fill="url(#eagleGrad)" />
+    <!-- Right Wing Feather 2 -->
+    <path d="M 0 -20 C 60 -40, 160 -40, 170 30 C 120 20, 50 10, 0 10 Z" fill="#2563eb" />
+    <!-- Right Wing Feather 3 -->
+    <path d="M 0 10 C 50 10, 130 30, 140 90 C 90 70, 40 50, 0 40 Z" fill="#1d4ed8" />
+
+    <!-- Left Wing Feather 1 -->
+    <path d="M 0 -70 C -50 -130, -150 -130, -180 -50 C -130 -30, -60 -40, 0 -20 Z" fill="url(#eagleGrad)" />
+    <!-- Left Wing Feather 2 -->
+    <path d="M 0 -20 C -60 -40, -160 -40, -170 30 C -120 20, -50 10, 0 10 Z" fill="#2563eb" />
+    <!-- Left Wing Feather 3 -->
+    <path d="M 0 10 C -50 10, -130 30, -140 90 C -90 70, -40 50, 0 40 Z" fill="#1d4ed8" />
+
+    <!-- Eagle Body & Crown -->
+    <path d="M -35 -50 L 0 -110 L 35 -50 L 40 40 L 0 90 L -40 40 Z" fill="#ffffff" />
+    
+    <!-- Eagle Beak (Golden) -->
+    <path d="M -16 -40 L 0 -20 L 16 -40 L 0 -75 Z" fill="url(#goldGrad)" />
+    
+    <!-- Chest Shield Insignia -->
+    <path d="M -24 -15 L 24 -15 L 18 35 L 0 52 L -18 35 Z" fill="#0f172a" />
+    <!-- Growth Chart Trend Bar inside Shield -->
+    <rect x="-12" y="15" width="5" height="15" rx="2" fill="#3b82f6" />
+    <rect x="-4" y="5" width="5" height="25" rx="2" fill="#60a5fa" />
+    <rect x="4" y="-5" width="5" height="35" rx="2" fill="#fbbf24" />
+  </g>
+</svg>
