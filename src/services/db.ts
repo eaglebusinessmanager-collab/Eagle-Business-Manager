@@ -4,9 +4,11 @@ import {
   AuditLog,
   Business,
   Customer,
+  FavouriteItem,
   InAppNotification,
   InventoryMovement,
   Invoice,
+  MarketplaceReview,
   ModerationStatus,
   PaymentStatus,
   PlatformStats,
@@ -472,6 +474,39 @@ const INITIAL_NOTIFICATIONS: InAppNotification[] = [
 ];
 
 const INITIAL_REPORTS: ProductReport[] = [];
+
+const INITIAL_REVIEWS: MarketplaceReview[] = [
+  {
+    id: 'rev-001',
+    productId: 'prod-001',
+    productName: 'Smart 43" 4K UHD LED TV',
+    reviewerName: 'Patrick Otim',
+    reviewerPhone: '+256 772 110 099',
+    rating: 5,
+    comment: 'Super crisp picture quality! Delivered to Ntinda within 2 hours of WhatsApp enquiry.',
+    createdAt: '2025-01-14T10:00:00Z',
+  },
+  {
+    id: 'rev-002',
+    productId: 'prod-002',
+    productName: 'Pure Sine Wave Solar Inverter 2.5kVA',
+    reviewerName: 'Grace Nalubega',
+    reviewerPhone: '+256 701 445 566',
+    rating: 5,
+    comment: 'Runs our entire clinic lighting and ultrasound backup seamlessly during Umeme outages. Highly recommended.',
+    createdAt: '2025-01-15T15:20:00Z',
+  },
+  {
+    id: 'rev-003',
+    productId: 'prod-008',
+    productName: 'Raw Unrefined Northern Shea Butter (500g)',
+    reviewerName: 'Amina Kigozi',
+    reviewerPhone: '+256 782 899 001',
+    rating: 5,
+    comment: 'Genuine Ugandan Nilotica butter, very soft and soothing for dry skin.',
+    createdAt: '2025-01-18T11:40:00Z',
+  },
+];
 
 // Local Storage Helper with Type Safety
 function getStored<T>(key: string, fallback: T): T {
@@ -1539,5 +1574,190 @@ export const dbService = {
       }
     }
     return products[idx];
+  },
+
+  // Marketplace Reviews
+  async getReviews(productId: string): Promise<MarketplaceReview[]> {
+    if (isFirebaseConfigured() && db) {
+      try {
+        const q = query(collection(db, 'reviews'), where('productId', '==', productId));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          return snap.docs.map((d) => d.data() as MarketplaceReview);
+        }
+      } catch (err) {
+        console.warn('Firebase getReviews fallback:', err);
+      }
+    }
+    const reviews = getStored<MarketplaceReview[]>('marketplace_reviews', INITIAL_REVIEWS);
+    return reviews.filter((r) => r.productId === productId);
+  },
+
+  async addReview(review: MarketplaceReview): Promise<MarketplaceReview> {
+    const reviews = getStored<MarketplaceReview[]>('marketplace_reviews', INITIAL_REVIEWS);
+    reviews.unshift(review);
+    setStored('marketplace_reviews', reviews);
+
+    // Update product rating summary
+    const prodReviews = reviews.filter((r) => r.productId === review.productId);
+    const avgRating = prodReviews.reduce((sum, r) => sum + r.rating, 0) / prodReviews.length;
+
+    const products = getStored<Product[]>('products', INITIAL_PRODUCTS);
+    const pIdx = products.findIndex((p) => p.id === review.productId);
+    if (pIdx !== -1) {
+      products[pIdx].rating = Number(avgRating.toFixed(1));
+      products[pIdx].reviewCount = prodReviews.length;
+      setStored('products', products);
+
+      if (isFirebaseConfigured() && db) {
+        try {
+          await updateDoc(doc(db, 'products', review.productId), {
+            rating: Number(avgRating.toFixed(1)),
+            reviewCount: prodReviews.length,
+          });
+        } catch (e) {
+          console.warn('Product rating update error:', e);
+        }
+      }
+    }
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await setDoc(doc(db, 'reviews', review.id), review);
+      } catch (err) {
+        console.warn('Firebase addReview error:', err);
+      }
+    }
+    return review;
+  },
+
+  // Marketplace Favourites
+  async getFavourites(userId?: string): Promise<string[]> {
+    const key = userId ? `favourites_${userId}` : 'favourites_guest';
+    return getStored<string[]>(key, []);
+  },
+
+  async toggleFavourite(productId: string, userId?: string): Promise<boolean> {
+    const key = userId ? `favourites_${userId}` : 'favourites_guest';
+    const favs = getStored<string[]>(key, []);
+    const exists = favs.includes(productId);
+    let updated: string[];
+    if (exists) {
+      updated = favs.filter((id) => id !== productId);
+    } else {
+      updated = [...favs, productId];
+    }
+    setStored(key, updated);
+    return !exists;
+  },
+
+  // Marketplace Analytics (Views and WhatsApp/Call Enquiries)
+  async trackMarketplaceAction(productId: string, action: 'view' | 'enquiry'): Promise<void> {
+    const products = getStored<Product[]>('products', INITIAL_PRODUCTS);
+    const idx = products.findIndex((p) => p.id === productId);
+    if (idx === -1) return;
+
+    if (action === 'view') {
+      products[idx].marketplaceViews = (products[idx].marketplaceViews || 0) + 1;
+    } else {
+      products[idx].marketplaceEnquiries = (products[idx].marketplaceEnquiries || 0) + 1;
+    }
+    setStored('products', products);
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await updateDoc(doc(db, 'products', productId), {
+          marketplaceViews: products[idx].marketplaceViews || 0,
+          marketplaceEnquiries: products[idx].marketplaceEnquiries || 0,
+        });
+      } catch (err) {
+        // Silent analytics sync
+      }
+    }
+  },
+
+  // Merchant toggle marketplace publishing
+  async toggleMarketplacePublish(productId: string, isPublished: boolean): Promise<Product | null> {
+    const products = getStored<Product[]>('products', INITIAL_PRODUCTS);
+    const idx = products.findIndex((p) => p.id === productId);
+    if (idx === -1) return null;
+
+    products[idx].isMarketplacePublished = isPublished;
+    products[idx].updatedAt = new Date().toISOString();
+    setStored('products', products);
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await updateDoc(doc(db, 'products', productId), {
+          isMarketplacePublished: isPublished,
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.warn('Firebase toggleMarketplacePublish error:', err);
+      }
+    }
+    return products[idx];
+  },
+
+  // Admin Listing Moderation
+  async updateProductModeration(
+    productId: string,
+    moderationStatus: ModerationStatus,
+    reason?: string,
+    adminId?: string
+  ): Promise<Product | null> {
+    const products = getStored<Product[]>('products', INITIAL_PRODUCTS);
+    const idx = products.findIndex((p) => p.id === productId);
+    if (idx === -1) return null;
+
+    products[idx].moderationStatus = moderationStatus;
+    if (reason) products[idx].moderationReason = reason;
+    products[idx].moderatedBy = adminId || 'admin';
+    products[idx].moderatedAt = new Date().toISOString();
+    products[idx].updatedAt = new Date().toISOString();
+    setStored('products', products);
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await updateDoc(doc(db, 'products', productId), {
+          moderationStatus,
+          moderationReason: reason || '',
+          moderatedBy: adminId || 'admin',
+          moderatedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.warn('Firebase updateProductModeration error:', err);
+      }
+    }
+
+    if (adminId) {
+      await this.addAuditLog({
+        id: 'log-' + Date.now(),
+        adminId,
+        action: `PRODUCT_MODERATION_${moderationStatus.toUpperCase()}`,
+        targetType: 'product',
+        targetId: productId,
+        targetName: products[idx].name,
+        timestamp: new Date().toISOString(),
+        details: { moderationStatus, reason },
+      });
+    }
+
+    return products[idx];
+  },
+
+  // Barcode / SKU Product Lookup
+  async getProductByBarcode(code: string, businessId?: string): Promise<Product | null> {
+    const cleanCode = code.trim().toLowerCase();
+    const products = getStored<Product[]>('products', INITIAL_PRODUCTS);
+    const found = products.find((p) => {
+      const matchBiz = !businessId || p.businessId === businessId;
+      const matchBarcode = p.barcode && p.barcode.toLowerCase() === cleanCode;
+      const matchSku = p.sku && p.sku.toLowerCase() === cleanCode;
+      const matchId = p.id.toLowerCase() === cleanCode;
+      return matchBiz && (matchBarcode || matchSku || matchId);
+    });
+    return found || null;
   },
 };

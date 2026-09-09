@@ -22,6 +22,7 @@ import { InvoicesPage } from './pages/user/InvoicesPage';
 import { ReportsPage } from './pages/user/ReportsPage';
 import { BusinessProfilePage } from './pages/user/BusinessProfilePage';
 import { MarketplacePage } from './pages/user/MarketplacePage';
+import { QuickScanPage } from './pages/user/QuickScanPage';
 
 // Admin Pages
 import { AdminDashboard } from './pages/admin/AdminDashboard';
@@ -237,6 +238,7 @@ const MainApp: React.FC = () => {
         {currentView === 'dashboard' && <UserDashboard onNavigate={handleNavigate} />}
         {currentView === 'products' && <ProductsPage onNavigate={handleNavigate} />}
         {currentView === 'marketplace' && <MarketplacePage onNavigate={handleNavigate} />}
+        {currentView === 'quick-scan' && <QuickScanPage onNavigate={handleNavigate} />}
         {currentView === 'sales' && <SalesPage />}
         {currentView === 'customers' && <CustomersPage />}
         {currentView === 'invoices' && <InvoicesPage />}

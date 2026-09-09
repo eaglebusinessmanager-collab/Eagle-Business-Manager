@@ -12,6 +12,7 @@ import {
   LogOut,
   X,
   Store,
+  ScanLine,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -239,6 +240,13 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ currentView, o
               >
                 <Store className="h-4 w-4 text-blue-600" />
                 Community Market
+              </button>
+              <button
+                onClick={() => { onNavigate('quick-scan'); setShowMoreMenu(false); }}
+                className="flex items-center gap-3 p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-xs font-bold text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900"
+              >
+                <ScanLine className="h-4 w-4 text-indigo-600" />
+                Quick Barcode Scan
               </button>
               <button
                 onClick={() => { onNavigate('invoices'); setShowMoreMenu(false); }}

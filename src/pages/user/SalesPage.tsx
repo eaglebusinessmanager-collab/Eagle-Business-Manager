@@ -19,10 +19,13 @@ import {
   Filter,
   Package,
   MessageCircle,
+  ScanLine,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { dbService } from '../../services/db';
 import { Customer, Product, Sale, SaleItem } from '../../types';
+import { CameraScannerModal } from '../../components/common/CameraScannerModal';
+import { AddRecipientModal } from '../../components/common/AddRecipientModal';
 
 export const SalesPage: React.FC = () => {
   const { business, user } = useAuth();
@@ -46,6 +49,10 @@ export const SalesPage: React.FC = () => {
   const [productSearch, setProductSearch] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [saleSuccessMessage, setSaleSuccessMessage] = useState<string | null>(null);
+
+  // Barcode / QR Scanner & Add Recipient Modal states
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
+  const [showAddRecipientModal, setShowAddRecipientModal] = useState(false);
 
   // History & Receipt View Modal
   const [selectedSaleForReceipt, setSelectedSaleForReceipt] = useState<Sale | null>(null);
@@ -140,6 +147,44 @@ export const SalesPage: React.FC = () => {
 
   const handleRemoveItem = (productId: string) => {
     setCartItems(cartItems.filter((i) => i.productId !== productId));
+  };
+
+  const handleScannedCode = async (decodedText: string) => {
+    if (!business) return;
+    const foundProduct = await dbService.lookupProductByBarcodeOrSku(business.id, decodedText);
+    if (foundProduct) {
+      handleAddToCart(foundProduct);
+      setShowCameraScanner(false);
+      setSaleSuccessMessage(`Scanned & added "${foundProduct.name}" to cart!`);
+      setTimeout(() => setSaleSuccessMessage(null), 3000);
+    } else {
+      alert(`No product found with Barcode/SKU: "${decodedText}". Please verify or add this barcode in Products.`);
+    }
+  };
+
+  const handleRecipientSaved = (saved: Customer) => {
+    setCustomers((prev) => {
+      const exists = prev.some((c) => c.id === saved.id);
+      if (exists) return prev.map((c) => (c.id === saved.id ? saved : c));
+      return [saved, ...prev];
+    });
+    setSelectedCustomerId(saved.id);
+    setShowAddRecipientModal(false);
+  };
+
+  const shareWhatsAppReceipt = (sale: Sale) => {
+    const text =
+      `*RECEIPT: ${sale.saleNumber}*\n` +
+      `*Business:* ${business?.name}\n` +
+      `*Client:* ${sale.customerName || 'Customer'}\n` +
+      `*Date:* ${new Date(sale.createdAt).toLocaleDateString()} ${new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}\n\n` +
+      `*ITEMS:*\n` +
+      sale.items.map((i) => `• ${i.productName} (${i.quantity}x @ ${formatCurrency(i.unitPrice)}) = ${formatCurrency(i.total)}`).join('\n') +
+      `\n\n*TOTAL PAID:* ${formatCurrency(sale.total)}\n` +
+      `*Payment Method:* ${sale.paymentMethod.replace('_', ' ').toUpperCase()} (${sale.paymentStatus.toUpperCase()})\n\n` +
+      `Thank you for shopping with ${business?.name || 'us'}!`;
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
   };
 
   const subtotal = cartItems.reduce((sum, i) => sum + i.total, 0);
@@ -292,17 +337,28 @@ export const SalesPage: React.FC = () => {
           {/* Left Column: Product Selector (lg:col-span-7) */}
           <div className="lg:col-span-7 space-y-3">
             <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
-              <div className="relative mb-3">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                  <Search className="h-4 w-4" />
+              <div className="flex items-center gap-2 mb-3">
+                <div className="relative flex-1">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <Search className="h-4 w-4" />
+                  </div>
+                  <input
+                    type="text"
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    placeholder="Search products by name or SKU..."
+                    className="block w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  />
                 </div>
-                <input
-                  type="text"
-                  value={productSearch}
-                  onChange={(e) => setProductSearch(e.target.value)}
-                  placeholder="Search products to add to cart..."
-                  className="block w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
+                <button
+                  type="button"
+                  onClick={() => setShowCameraScanner(true)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs active:scale-95 transition shrink-0 cursor-pointer"
+                  title="Scan product barcode or QR label"
+                >
+                  <ScanLine className="h-4 w-4" />
+                  <span>Scan</span>
+                </button>
               </div>
 
               {/* Products Grid */}
@@ -449,9 +505,19 @@ export const SalesPage: React.FC = () => {
               {/* Customer Selector */}
               <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5 text-xs">
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Select Customer
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300">
+                      Customer / Recipient
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddRecipientModal(true)}
+                      className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5 cursor-pointer"
+                    >
+                      <Plus className="h-3 w-3" />
+                      <span>+ New Recipient</span>
+                    </button>
+                  </div>
                   <select
                     value={selectedCustomerId}
                     onChange={(e) => setSelectedCustomerId(e.target.value)}

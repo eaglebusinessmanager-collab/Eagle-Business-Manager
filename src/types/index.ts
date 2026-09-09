@@ -38,11 +38,14 @@ export interface Business {
 export type ProductStatus = 'active' | 'inactive';
 export type ModerationStatus = 'pending' | 'approved' | 'rejected';
 
+export type CustomerType = 'regular' | 'retail' | 'wholesale' | 'vip' | 'distributor' | 'walk_in';
+
 export interface Product {
   id: string;
   businessId: string;
   name: string;
   sku: string;
+  barcode?: string;
   category: string;
   description: string;
   buyingPrice: number;
@@ -59,6 +62,12 @@ export interface Product {
   moderationReason?: string;
   moderatedBy?: string;
   moderatedAt?: string;
+  isMarketplacePublished?: boolean;
+  marketplaceViews?: number;
+  marketplaceEnquiries?: number;
+  featured?: boolean;
+  rating?: number;
+  reviewCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -86,9 +95,28 @@ export interface Customer {
   phone: string;
   email?: string;
   address?: string;
+  type?: CustomerType;
   notes?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface MarketplaceReview {
+  id: string;
+  productId: string;
+  productName: string;
+  reviewerName: string;
+  reviewerPhone?: string;
+  rating: number; // 1 to 5
+  comment: string;
+  createdAt: string;
+}
+
+export interface FavouriteItem {
+  id: string;
+  productId: string;
+  userId?: string;
+  createdAt: string;
 }
 
 export interface SaleItem {

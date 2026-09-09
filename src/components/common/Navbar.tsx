@@ -16,6 +16,7 @@ import {
   Users,
   BarChart3,
   Package,
+  ScanLine,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { PWAInstallButton } from './PWAInstallButton';
@@ -118,6 +119,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
               >
                 <Store className="h-3.5 w-3.5 text-blue-600" />
                 <span>Marketplace</span>
+              </button>
+              <button
+                onClick={() => onNavigate('quick-scan')}
+                className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+                  currentView === 'quick-scan'
+                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400 font-bold'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                }`}
+              >
+                <ScanLine className="h-3.5 w-3.5 text-blue-600" />
+                <span>Quick Scan</span>
               </button>
               <button
                 onClick={() => onNavigate('sales')}
@@ -397,6 +409,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
               >
                 <Store className="h-4 w-4 text-blue-600" />
                 Community Marketplace & Search
+              </button>
+              <button
+                onClick={() => { onNavigate('quick-scan'); setMobileMenuOpen(false); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50/70 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50"
+              >
+                <ScanLine className="h-4 w-4 text-indigo-600" />
+                Quick Barcode / QR Scan
               </button>
               <button
                 onClick={() => { onNavigate('sales'); setMobileMenuOpen(false); }}
