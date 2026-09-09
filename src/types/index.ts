@@ -36,6 +36,7 @@ export interface Business {
 }
 
 export type ProductStatus = 'active' | 'inactive';
+export type ModerationStatus = 'pending' | 'approved' | 'rejected';
 
 export interface Product {
   id: string;
@@ -51,8 +52,13 @@ export interface Product {
   imageUrl?: string;
   sellerName?: string;
   sellerPhone?: string;
+  sellerLocation?: string;
   businessName?: string;
   status: ProductStatus;
+  moderationStatus?: ModerationStatus;
+  moderationReason?: string;
+  moderatedBy?: string;
+  moderatedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -175,12 +181,44 @@ export interface AuditLog {
   details?: Record<string, unknown>;
 }
 
+export interface ProductReport {
+  id: string;
+  productId: string;
+  productName: string;
+  sellerName?: string;
+  reporterId: string;
+  reporterName: string;
+  reporterEmail?: string;
+  reason: 'counterfeit' | 'misleading' | 'inappropriate' | 'out_of_stock' | 'scam' | 'other';
+  details: string;
+  status: 'pending' | 'resolved' | 'dismissed';
+  createdAt: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  actionTaken?: string;
+}
+
+export interface InAppNotification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'alert';
+  link?: string;
+  read: boolean;
+  createdAt: string;
+}
+
 export interface PlatformStats {
   totalUsers: number;
   activeUsers: number;
   suspendedUsers: number;
   totalBusinesses: number;
   totalProducts: number;
+  pendingProducts: number;
+  approvedProducts: number;
+  rejectedProducts: number;
+  totalReports: number;
   totalSales: number;
   totalTransactions: number;
   recentRegistrations: UserProfile[];

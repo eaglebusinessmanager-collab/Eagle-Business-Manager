@@ -1,0 +1,110 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isCurrentUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'eaglebusinessmanager@gmail.com' ||
+        (request.auth.token.email != null && request.auth.token.email.matches('.*eagle.*admin.*')) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // User Profiles
+    match /users/{userId} {
+      allow get: if isCurrentUser(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isCurrentUser(userId) || isAdmin();
+      allow update: if (isCurrentUser(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'status'])) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Admin collection for RBAC lookup
+    match /admins/{adminId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Businesses
+    match /businesses/{businessId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    // Products (Marketplace items & inventory)
+    match /products/{productId} {
+      // Allow reading active/approved products or any product if authenticated
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+
+    // Customers
+    match /customers/{customerId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Sales
+    match /sales/{saleId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Invoices
+    match /invoices/{invoiceId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Product Reports (Safety & Moderation)
+    match /reports/{reportId} {
+      allow create: if isSignedIn();
+      allow read, update, delete: if isAdmin();
+    }
+
+    // In-App Notifications
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.userId == 'all');
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow delete: if isCurrentUser(resource.data.userId) || isAdmin();
+    }
+
+    // Platform Announcements
+    match /announcements/{announcementId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Audit Logs
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    // App Settings
+    match /settings/{settingId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

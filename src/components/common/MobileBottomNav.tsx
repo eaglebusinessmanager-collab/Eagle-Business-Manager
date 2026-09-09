@@ -11,6 +11,7 @@ import {
   Shield,
   LogOut,
   X,
+  Store,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -232,6 +233,13 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ currentView, o
             </div>
 
             <div className="grid grid-cols-2 gap-2.5">
+              <button
+                onClick={() => { onNavigate('marketplace'); setShowMoreMenu(false); }}
+                className="flex items-center gap-3 p-3 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-xs font-bold text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900"
+              >
+                <Store className="h-4 w-4 text-blue-600" />
+                Community Market
+              </button>
               <button
                 onClick={() => { onNavigate('invoices'); setShowMoreMenu(false); }}
                 className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-800 dark:text-slate-200"

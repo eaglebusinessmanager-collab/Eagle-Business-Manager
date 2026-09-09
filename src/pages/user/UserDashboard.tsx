@@ -13,6 +13,12 @@ import {
   Sparkles,
   Info,
   TrendingUp,
+  Store,
+  Search,
+  ArrowRight,
+  Globe,
+  MapPin,
+  ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { dbService } from '../../services/db';
@@ -37,6 +43,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   const [sales, setSales] = useState<Sale[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [marketplaceProducts, setMarketplaceProducts] = useState<Product[]>([]);
+  const [marketplaceSearch, setMarketplaceSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
   const currency = business?.currency || 'UGX';
@@ -45,14 +53,16 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
     if (!business) return;
     setLoading(true);
     try {
-      const [sList, pList, annList] = await Promise.all([
+      const [sList, pList, annList, mList] = await Promise.all([
         dbService.getSales(business.id),
         dbService.getProducts(business.id),
         dbService.getActiveAnnouncements(),
+        dbService.getAllMarketplaceProducts(),
       ]);
       setSales(sList);
       setProducts(pList);
       setAnnouncements(annList);
+      setMarketplaceProducts(mList);
     } catch (e) {
       console.error('Error loading user dashboard data:', e);
     } finally {
@@ -80,54 +90,60 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
     return `${currency} ${val.toLocaleString()}`;
   };
 
+  const handleMarketplaceSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (marketplaceSearch.trim()) {
+      localStorage.setItem('eagle_marketplace_search', marketplaceSearch.trim());
+    }
+    onNavigate('marketplace');
+  };
+
   return (
     <div className="space-y-5 pb-20 md:pb-8">
-      {/* Active System Announcements */}
+      {/* Broadcast Announcements Banner */}
       {announcements.length > 0 && (
         <div className="space-y-2">
           {announcements.map((ann) => (
             <div
               key={ann.id}
-              className="flex items-start gap-3 rounded-2xl bg-blue-50 dark:bg-blue-950/40 p-3.5 sm:p-4 border border-blue-200/80 dark:border-blue-900/50 shadow-xs"
+              className="flex items-start gap-3 p-3.5 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/60 text-xs"
             >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white">
-                <Info className="h-4 w-4" />
-              </div>
+              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
               <div className="flex-1">
-                <h4 className="text-xs font-bold text-blue-950 dark:text-blue-200">{ann.title}</h4>
-                <p className="text-xs text-blue-900/80 dark:text-blue-300 mt-0.5 leading-relaxed">
+                <span className="font-bold text-blue-900 dark:text-blue-200">
+                  {ann.title}:
+                </span>{' '}
+                <span className="text-blue-800 dark:text-blue-300">
                   {ann.message}
-                </p>
+                </span>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* PWA In-App Banner if installable */}
-      <PWAInstallButton variant="banner" />
-
-      {/* Welcome Header */}
+      {/* Welcome & Primary Actions Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">
-              Welcome back, {user?.fullName}
+              {business?.name || 'Enterprise Dashboard'}
             </h1>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
-              Live
+            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-mono text-[10px] font-bold">
+              {business?.category || 'Retail'}
             </span>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            {business?.name} • Category: {business?.category}
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Logged in as <span className="font-semibold text-slate-700 dark:text-slate-300">{user?.fullName || user?.username}</span>
+            {user?.phone && ` (${user.phone})`} • Currency: {currency}
           </p>
         </div>
 
-        {/* Primary Action Button */}
         <div className="flex items-center gap-2">
+          <PWAInstallButton variant="banner" />
           <button
             onClick={() => onNavigate('sales')}
-            className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-blue-700 active:scale-95 transition"
+            className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-blue-700 active:scale-95 transition cursor-pointer"
           >
             <ShoppingBag className="h-4 w-4" />
             <span>Record New Sale</span>
@@ -176,43 +192,166 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
           Quick Operations
         </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
           <button
             onClick={() => onNavigate('sales')}
-            className="flex flex-col items-center justify-center p-3 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 transition active:scale-95 border border-blue-100 dark:border-blue-900/40 text-center"
+            className="flex flex-col items-center justify-center p-3 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 transition active:scale-95 border border-blue-100 dark:border-blue-900/40 text-center cursor-pointer"
           >
             <ShoppingBag className="h-5 w-5 mb-1 text-blue-600 dark:text-blue-400" />
             <span className="text-xs font-bold">Record Sale</span>
           </button>
           <button
             onClick={() => onNavigate('products')}
-            className="flex flex-col items-center justify-center p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 transition active:scale-95 border border-emerald-100 dark:border-emerald-900/40 text-center"
+            className="flex flex-col items-center justify-center p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 transition active:scale-95 border border-emerald-100 dark:border-emerald-900/40 text-center cursor-pointer"
           >
             <PlusCircle className="h-5 w-5 mb-1 text-emerald-600 dark:text-emerald-400" />
             <span className="text-xs font-bold">Add Product</span>
           </button>
           <button
             onClick={() => onNavigate('customers')}
-            className="flex flex-col items-center justify-center p-3 rounded-xl bg-purple-50/80 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 hover:bg-purple-100 transition active:scale-95 border border-purple-100 dark:border-purple-900/40 text-center"
+            className="flex flex-col items-center justify-center p-3 rounded-xl bg-purple-50/80 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 hover:bg-purple-100 transition active:scale-95 border border-purple-100 dark:border-purple-900/40 text-center cursor-pointer"
           >
             <Users className="h-5 w-5 mb-1 text-purple-600 dark:text-purple-400" />
             <span className="text-xs font-bold">Add Customer</span>
           </button>
           <button
             onClick={() => onNavigate('invoices')}
-            className="flex flex-col items-center justify-center p-3 rounded-xl bg-cyan-50/80 dark:bg-cyan-950/40 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 transition active:scale-95 border border-cyan-100 dark:border-cyan-900/40 text-center"
+            className="flex flex-col items-center justify-center p-3 rounded-xl bg-cyan-50/80 dark:bg-cyan-950/40 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 transition active:scale-95 border border-cyan-100 dark:border-cyan-900/40 text-center cursor-pointer"
           >
             <FileText className="h-5 w-5 mb-1 text-cyan-600 dark:text-cyan-400" />
             <span className="text-xs font-bold">Create Invoice</span>
           </button>
           <button
             onClick={() => onNavigate('reports')}
-            className="flex flex-col items-center justify-center p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100 transition active:scale-95 border border-amber-100 dark:border-amber-900/40 text-center col-span-2 sm:col-span-1"
+            className="flex flex-col items-center justify-center p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100 transition active:scale-95 border border-amber-100 dark:border-amber-900/40 text-center cursor-pointer"
           >
             <BarChart3 className="h-5 w-5 mb-1 text-amber-600 dark:text-amber-400" />
-            <span className="text-xs font-bold">View Reports</span>
+            <span className="text-xs font-bold">Reports</span>
+          </button>
+          <button
+            onClick={() => onNavigate('marketplace')}
+            className="flex flex-col items-center justify-center p-3 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 transition active:scale-95 border border-indigo-200 dark:border-indigo-900/60 text-center relative cursor-pointer"
+          >
+            <span className="absolute -top-1.5 -right-1 px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[9px] font-extrabold uppercase">
+              Live
+            </span>
+            <Store className="h-5 w-5 mb-1 text-indigo-600 dark:text-indigo-400" />
+            <span className="text-xs font-bold">Marketplace</span>
           </button>
         </div>
+      </div>
+
+      {/* Prominent Community Marketplace Spotlight Card */}
+      <div className="rounded-2xl bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 text-white p-5 sm:p-6 shadow-md border border-indigo-900/50 relative overflow-hidden">
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-400/20">
+                <Store className="h-5 w-5" />
+              </div>
+              <h2 className="text-base sm:text-lg font-bold text-white">
+                Eagle Community Marketplace
+              </h2>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[11px] font-bold">
+                {marketplaceProducts.length} Verified Items
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-1 max-w-xl">
+              Source wholesale & retail goods directly from verified Ugandan businesses. Direct WhatsApp contact with zero middleman fees.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onNavigate('marketplace')}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow-sm cursor-pointer"
+            >
+              <span>Browse All Items</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => onNavigate('products')}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-semibold transition border border-white/10 cursor-pointer"
+            >
+              <span>List Your Products</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Search Bar directly inside Marketplace Card */}
+        <form onSubmit={handleMarketplaceSearch} className="mt-4">
+          <div className="relative flex items-center">
+            <Search className="absolute left-3.5 h-4 w-4 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search products across all merchants (e.g. Solar inverters, Matooke, Coffee, Shoes)..."
+              value={marketplaceSearch}
+              onChange={(e) => setMarketplaceSearch(e.target.value)}
+              className="w-full pl-10 pr-24 py-2.5 rounded-xl bg-white/10 border border-white/15 text-white placeholder-slate-400 text-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-400"
+            />
+            <button
+              type="submit"
+              className="absolute right-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition cursor-pointer"
+            >
+              Search
+            </button>
+          </div>
+        </form>
+
+        {/* Featured Marketplace Products Mini-Grid */}
+        {marketplaceProducts.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-white/10">
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-300">
+                Trending from Community Vendors
+              </span>
+              <button
+                onClick={() => onNavigate('marketplace')}
+                className="text-[11px] text-indigo-300 hover:text-white flex items-center gap-1 font-semibold"
+              >
+                <span>View all</span>
+                <ArrowRight className="h-3 w-3" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              {marketplaceProducts.slice(0, 4).map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => onNavigate('marketplace')}
+                  className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition cursor-pointer group flex flex-col justify-between"
+                >
+                  <div className="aspect-video w-full rounded-lg overflow-hidden bg-slate-800 mb-2 relative">
+                    <img
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                      referrerPolicy="no-referrer"
+                    />
+                    <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/70 text-white text-[9px] font-mono font-bold">
+                      {item.currentStock} left
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-xs font-bold text-white truncate group-hover:text-indigo-300 transition">
+                      {item.name}
+                    </h4>
+                    <p className="text-[10px] text-slate-400 truncate flex items-center gap-1 mt-0.5">
+                      <MapPin className="h-2.5 w-2.5 text-indigo-400 shrink-0" />
+                      <span>{item.sellerLocation || item.businessName}</span>
+                    </p>
+                    <p className="text-xs font-mono font-extrabold text-emerald-400 mt-1">
+                      UGX {item.sellingPrice.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Grid: Low Stock Alert & Recent Transactions */}
@@ -228,7 +367,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
             </div>
             <button
               onClick={() => onNavigate('products')}
-              className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+              className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
             >
               Manage
             </button>
@@ -262,18 +401,18 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
           )}
         </div>
 
-        {/* Recent Transactions Table */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+        {/* Recent Store Transactions */}
+        <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs lg:col-span-2">
           <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-blue-500" />
+              <Clock className="h-4 w-4 text-blue-600" />
               <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                Recent Transactions
+                Recent Store Transactions
               </h3>
             </div>
             <button
               onClick={() => onNavigate('sales')}
-              className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+              className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
             >
               View All
             </button>
@@ -281,16 +420,16 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
 
           {sales.length === 0 ? (
             <div className="py-8 text-center text-xs text-slate-400">
-              <ShoppingBag className="h-8 w-8 mx-auto mb-2 opacity-40" />
-              <p className="font-semibold text-slate-700 dark:text-slate-300">No sales recorded yet</p>
-              <p className="text-[11px] mt-0.5">Click 'Record New Sale' above to begin selling!</p>
+              <ShoppingBag className="h-8 w-8 mx-auto mb-1.5 opacity-30" />
+              <p className="font-semibold text-slate-700 dark:text-slate-300">No recorded sales yet</p>
+              <p className="text-[11px] mt-0.5">Start by recording a sale at the checkout counter.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="text-slate-400 border-b border-slate-100 dark:border-slate-800 font-medium">
-                    <th className="pb-2">Receipt #</th>
+                  <tr className="text-slate-400 font-semibold border-b border-slate-100 dark:border-slate-800">
+                    <th className="pb-2">Invoice #</th>
                     <th className="pb-2">Customer</th>
                     <th className="pb-2">Items</th>
                     <th className="pb-2">Amount</th>

@@ -8,6 +8,7 @@ import {
   Camera,
   Check,
 } from 'lucide-react';
+import { uploadFileToStorage } from '../../lib/firebase';
 
 interface ProductImageUploaderProps {
   imageUrl: string;
@@ -70,14 +71,28 @@ export const ProductImageUploader: React.FC<ProductImageUploaderProps> = ({
   const [processing, setProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Compress & resize image to safe Data URL (max 600px width/height, 0.85 quality)
-  const processImageFile = (file: File) => {
+  // Compress & resize image to safe Data URL and upload to Firebase Storage
+  const processImageFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       alert('Please select a valid image file (PNG, JPG, WEBP).');
       return;
     }
 
     setProcessing(true);
+
+    // Attempt direct Firebase Storage upload
+    try {
+      const storageUrl = await uploadFileToStorage(file, 'products');
+      if (storageUrl) {
+        onChange(storageUrl);
+        setUrlInput(storageUrl);
+        setProcessing(false);
+        return;
+      }
+    } catch (storageErr) {
+      console.warn('Firebase Storage direct upload skipped, compressing locally:', storageErr);
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();

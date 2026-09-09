@@ -35,7 +35,17 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
   const [loading, setLoading] = useState(true);
 
   // Search and Filter States
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => {
+    return localStorage.getItem('eagle_marketplace_search') || '';
+  });
+
+  useEffect(() => {
+    const saved = localStorage.getItem('eagle_marketplace_search');
+    if (saved) {
+      setSearchQuery(saved);
+      localStorage.removeItem('eagle_marketplace_search');
+    }
+  }, []);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedSeller, setSelectedSeller] = useState('All');
   const [inStockOnly, setInStockOnly] = useState(false);

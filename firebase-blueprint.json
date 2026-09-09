@@ -1,0 +1,250 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with role, business link, and contact details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "username": { "type": "string", "maxLength": 64 },
+        "fullName": { "type": "string", "maxLength": 128 },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "status": { "type": "string", "enum": ["active", "suspended"] },
+        "businessId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "lastLoginAt": { "type": "string" }
+      },
+      "required": ["id", "username", "fullName", "role", "status", "businessId", "createdAt", "updatedAt"]
+    },
+    "Business": {
+      "title": "Business",
+      "description": "Business entity registered on the platform",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 128 },
+        "category": { "type": "string", "maxLength": 64 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "address": { "type": "string", "maxLength": 256 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "currency": { "type": "string", "maxLength": 10 },
+        "logoUrl": { "type": "string", "maxLength": 1024 },
+        "invoiceNotes": { "type": "string", "maxLength": 1000 },
+        "receiptFooter": { "type": "string", "maxLength": 1000 },
+        "status": { "type": "string", "enum": ["active", "suspended"] },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "category", "phone", "address", "currency", "status", "createdAt", "updatedAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Inventory product and marketplace item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "businessId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "sku": { "type": "string", "maxLength": 64 },
+        "category": { "type": "string", "maxLength": 64 },
+        "description": { "type": "string", "maxLength": 2000 },
+        "buyingPrice": { "type": "number" },
+        "sellingPrice": { "type": "number" },
+        "currentStock": { "type": "number" },
+        "minStockLevel": { "type": "number" },
+        "imageUrl": { "type": "string", "maxLength": 2048 },
+        "sellerName": { "type": "string", "maxLength": 128 },
+        "sellerPhone": { "type": "string", "maxLength": 32 },
+        "sellerLocation": { "type": "string", "maxLength": 128 },
+        "businessName": { "type": "string", "maxLength": 128 },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "moderationStatus": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "moderationReason": { "type": "string", "maxLength": 500 },
+        "moderatedBy": { "type": "string", "maxLength": 128 },
+        "moderatedAt": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "businessId", "name", "sku", "category", "sellingPrice", "status", "createdAt", "updatedAt"]
+    },
+    "ProductReport": {
+      "title": "ProductReport",
+      "description": "Safety report filed against a marketplace product",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "productId": { "type": "string", "maxLength": 128 },
+        "productName": { "type": "string", "maxLength": 200 },
+        "sellerName": { "type": "string", "maxLength": 128 },
+        "reporterId": { "type": "string", "maxLength": 128 },
+        "reporterName": { "type": "string", "maxLength": 128 },
+        "reporterEmail": { "type": "string", "maxLength": 256 },
+        "reason": { "type": "string", "enum": ["counterfeit", "misleading", "inappropriate", "out_of_stock", "scam", "other"] },
+        "details": { "type": "string", "maxLength": 1000 },
+        "status": { "type": "string", "enum": ["pending", "resolved", "dismissed"] },
+        "createdAt": { "type": "string" },
+        "resolvedAt": { "type": "string" },
+        "resolvedBy": { "type": "string", "maxLength": 128 },
+        "actionTaken": { "type": "string", "maxLength": 500 }
+      },
+      "required": ["id", "productId", "productName", "reporterId", "reporterName", "reason", "details", "status", "createdAt"]
+    },
+    "InAppNotification": {
+      "title": "InAppNotification",
+      "description": "Notification for user activity and admin announcements",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "message": { "type": "string", "maxLength": 1000 },
+        "type": { "type": "string", "enum": ["info", "success", "warning", "alert"] },
+        "link": { "type": "string", "maxLength": 256 },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "title", "message", "type", "read", "createdAt"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Business customer or client record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "businessId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 128 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "email": { "type": "string", "maxLength": 256 },
+        "address": { "type": "string", "maxLength": 256 },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "businessId", "name", "phone", "createdAt", "updatedAt"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "Sales receipt and transaction record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "businessId": { "type": "string", "maxLength": 128 },
+        "saleNumber": { "type": "string", "maxLength": 64 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 128 },
+        "customerPhone": { "type": "string", "maxLength": 32 },
+        "subtotal": { "type": "number" },
+        "discount": { "type": "number" },
+        "total": { "type": "number" },
+        "paymentStatus": { "type": "string", "enum": ["paid", "pending", "partial", "overdue", "cancelled"] },
+        "paymentMethod": { "type": "string", "enum": ["cash", "mobile_money", "card", "bank_transfer"] },
+        "notes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" },
+        "createdBy": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["id", "businessId", "saleNumber", "subtotal", "total", "paymentStatus", "paymentMethod", "createdAt", "createdBy"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Customer invoice with line items and payment terms",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "businessId": { "type": "string", "maxLength": 128 },
+        "invoiceNumber": { "type": "string", "maxLength": 64 },
+        "saleId": { "type": "string", "maxLength": 128 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 128 },
+        "customerPhone": { "type": "string", "maxLength": 32 },
+        "customerAddress": { "type": "string", "maxLength": 256 },
+        "subtotal": { "type": "number" },
+        "discount": { "type": "number" },
+        "total": { "type": "number" },
+        "paymentStatus": { "type": "string", "enum": ["paid", "pending", "partial", "overdue", "cancelled"] },
+        "dueDate": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "notes": { "type": "string", "maxLength": 1000 }
+      },
+      "required": ["id", "businessId", "invoiceNumber", "customerName", "subtotal", "total", "paymentStatus", "dueDate", "createdAt"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "System or platform announcement created by administrators",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "message": { "type": "string", "maxLength": 2000 },
+        "type": { "type": "string", "enum": ["info", "warning", "promotion", "update"] },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "createdBy": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["id", "title", "message", "type", "startDate", "endDate", "isActive", "createdAt", "createdBy"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Administrative audit trail entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "adminId": { "type": "string", "maxLength": 128 },
+        "adminEmail": { "type": "string", "maxLength": 256 },
+        "action": { "type": "string", "maxLength": 128 },
+        "targetType": { "type": "string", "enum": ["user", "business", "product", "settings", "announcement", "system"] },
+        "targetId": { "type": "string", "maxLength": 128 },
+        "targetName": { "type": "string", "maxLength": 128 },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "adminId", "adminEmail", "action", "targetType", "targetId", "targetName", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles and permissions"
+    },
+    "/businesses/{businessId}": {
+      "schema": "Business",
+      "description": "Businesses registered on the platform"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Marketplace and inventory items"
+    },
+    "/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Customer contacts"
+    },
+    "/sales/{saleId}": {
+      "schema": "Sale",
+      "description": "Sales records"
+    },
+    "/invoices/{invoiceId}": {
+      "schema": "Invoice",
+      "description": "Invoices"
+    },
+    "/reports/{reportId}": {
+      "schema": "ProductReport",
+      "description": "Reports against marketplace listings"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "InAppNotification",
+      "description": "User and platform notifications"
+    },
+    "/announcements/{announcementId}": {
+      "schema": "Announcement",
+      "description": "Platform broadcast announcements"
+    },
+    "/auditLogs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Administrative actions audit trail"
+    }
+  }
+}

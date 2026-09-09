@@ -18,6 +18,11 @@ import {
   Image as ImageIcon,
   ZoomIn,
   Camera,
+  User,
+  Phone,
+  Store,
+  MessageCircle,
+  Info,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { dbService } from '../../services/db';
@@ -25,7 +30,11 @@ import { InventoryMovement, Product } from '../../types';
 import { ConfirmationModal } from '../../components/common/ConfirmationModal';
 import { ProductImageUploader } from '../../components/products/ProductImageUploader';
 
-export const ProductsPage: React.FC = () => {
+interface ProductsPageProps {
+  onNavigate?: (view: string) => void;
+}
+
+export const ProductsPage: React.FC<ProductsPageProps> = ({ onNavigate }) => {
   const { business, user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,6 +65,8 @@ export const ProductsPage: React.FC = () => {
     currentStock: 0,
     minStockLevel: 5,
     imageUrl: '',
+    sellerName: '',
+    sellerPhone: '',
     status: 'active' as 'active' | 'inactive',
   });
 
@@ -84,13 +95,15 @@ export const ProductsPage: React.FC = () => {
     setFormData({
       name: '',
       sku: 'SKU-' + Math.floor(1000 + Math.random() * 9000),
-      category: 'Electronics',
+      category: 'General',
       description: '',
       buyingPrice: 0,
       sellingPrice: 0,
       currentStock: 0,
       minStockLevel: 5,
       imageUrl: '',
+      sellerName: user?.fullName || user?.username || '',
+      sellerPhone: user?.phone || business?.phone || '+256 743 566 645',
       status: 'active',
     });
     setEditingProduct(null);
@@ -109,6 +122,8 @@ export const ProductsPage: React.FC = () => {
       currentStock: prod.currentStock,
       minStockLevel: prod.minStockLevel,
       imageUrl: prod.imageUrl || '',
+      sellerName: prod.sellerName || user?.fullName || user?.username || '',
+      sellerPhone: prod.sellerPhone || user?.phone || business?.phone || '+256 743 566 645',
       status: prod.status,
     });
     setShowAddModal(true);
@@ -128,6 +143,8 @@ export const ProductsPage: React.FC = () => {
         sellingPrice: Number(formData.sellingPrice),
         minStockLevel: Number(formData.minStockLevel),
         imageUrl: formData.imageUrl,
+        sellerName: formData.sellerName || user?.fullName || 'Seller',
+        sellerPhone: formData.sellerPhone || user?.phone || business.phone,
         status: formData.status,
       });
     } else {
@@ -143,6 +160,9 @@ export const ProductsPage: React.FC = () => {
         currentStock: Number(formData.currentStock),
         minStockLevel: Number(formData.minStockLevel),
         imageUrl: formData.imageUrl,
+        sellerName: formData.sellerName || user?.fullName || 'Seller',
+        sellerPhone: formData.sellerPhone || user?.phone || business.phone,
+        businessName: business.name,
         status: formData.status,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -233,13 +253,25 @@ export const ProductsPage: React.FC = () => {
             Manage your stock items, buying/selling prices, minimum alerts, and adjustments.
           </p>
         </div>
-        <button
-          onClick={handleOpenAdd}
-          className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-blue-700 active:scale-95 transition"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Add Product</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {onNavigate && (
+            <button
+              onClick={() => onNavigate('marketplace')}
+              className="flex items-center justify-center gap-2 rounded-xl bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 dark:bg-slate-800 dark:hover:bg-blue-950/40 dark:text-slate-300 dark:hover:text-blue-300 px-3.5 py-2.5 text-xs font-bold border border-slate-200 dark:border-slate-700 transition"
+              title="View what other users are selling & search products"
+            >
+              <Store className="h-4 w-4 text-blue-600" />
+              <span>Community Market</span>
+            </button>
+          )}
+          <button
+            onClick={handleOpenAdd}
+            className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-blue-700 active:scale-95 transition"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Add Product</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -452,6 +484,22 @@ export const ProductsPage: React.FC = () => {
                       </span>
                     </div>
                   </div>
+
+                  {/* Seller / Contact Info */}
+                  {(p.sellerName || p.sellerPhone) && (
+                    <div className="mt-2.5 px-2.5 py-1.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
+                      <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-semibold truncate">
+                        <User className="h-3 w-3 text-blue-500 shrink-0" />
+                        <span className="truncate">{p.sellerName || 'Seller'}</span>
+                      </div>
+                      {p.sellerPhone && (
+                        <div className="flex items-center gap-1 text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                          <Phone className="h-2.5 w-2.5 text-emerald-500" />
+                          <span>{p.sellerPhone}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Card Actions */}
@@ -527,9 +575,12 @@ export const ProductsPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    SKU Code *
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-semibold text-slate-700 dark:text-slate-300">
+                      SKU Code
+                    </label>
+                    <span className="text-[10px] text-slate-400 font-normal">Auto-generated</span>
+                  </div>
                   <input
                     type="text"
                     required
@@ -554,10 +605,29 @@ export const ProductsPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Quick Category Chips for quick single-tap entry */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                <span className="text-[10px] text-slate-400 font-medium">Quick Pick:</span>
+                {['General', 'Electronics', 'Fashion', 'Groceries', 'Beauty', 'Home & Living', 'Services'].map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, category: cat })}
+                    className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition ${
+                      formData.category === cat
+                        ? 'bg-blue-600 text-white font-bold'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Buying Price ({currency})
+                    Buying Price ({currency}) <span className="text-slate-400 font-normal">(Optional)</span>
                   </label>
                   <input
                     type="number"
@@ -577,7 +647,7 @@ export const ProductsPage: React.FC = () => {
                     required
                     value={formData.sellingPrice}
                     onChange={(e) => setFormData({ ...formData, sellingPrice: Number(e.target.value) })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-bold"
                   />
                 </div>
               </div>
@@ -586,7 +656,7 @@ export const ProductsPage: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Initial Stock Count
+                      Initial Stock Count *
                     </label>
                     <input
                       type="number"
@@ -626,9 +696,62 @@ export const ProductsPage: React.FC = () => {
                   rows={2}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Specs, warranty, features..."
+                  placeholder="Specs, warranty, features, or notes for buyers..."
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                 />
+              </div>
+
+              {/* Seller Information (Requested by User) */}
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50/50 dark:from-blue-950/40 dark:to-indigo-950/30 border border-blue-200/80 dark:border-blue-900/60 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300 font-bold text-xs">
+                    <User className="h-4 w-4 text-blue-600" />
+                    <span>Seller & Contact Details</span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50 px-2 py-0.5 rounded-full">
+                    For Marketplace
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                  These details allow other platform users to find your products and contact you directly via Phone or WhatsApp:
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Seller / Contact Name *
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                      <input
+                        type="text"
+                        required
+                        value={formData.sellerName}
+                        onChange={(e) => setFormData({ ...formData, sellerName: e.target.value })}
+                        placeholder="e.g. Kato Ronald"
+                        className="w-full pl-8 pr-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Seller Phone Number *
+                    </label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                      <input
+                        type="text"
+                        required
+                        value={formData.sellerPhone}
+                        onChange={(e) => setFormData({ ...formData, sellerPhone: e.target.value })}
+                        placeholder="e.g. +256 701 234 567"
+                        className="w-full pl-8 pr-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-semibold"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">

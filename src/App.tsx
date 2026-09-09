@@ -21,6 +21,7 @@ import { CustomersPage } from './pages/user/CustomersPage';
 import { InvoicesPage } from './pages/user/InvoicesPage';
 import { ReportsPage } from './pages/user/ReportsPage';
 import { BusinessProfilePage } from './pages/user/BusinessProfilePage';
+import { MarketplacePage } from './pages/user/MarketplacePage';
 
 // Admin Pages
 import { AdminDashboard } from './pages/admin/AdminDashboard';
@@ -234,7 +235,8 @@ const MainApp: React.FC = () => {
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
         {/* USER PORTAL ROUTES */}
         {currentView === 'dashboard' && <UserDashboard onNavigate={handleNavigate} />}
-        {currentView === 'products' && <ProductsPage />}
+        {currentView === 'products' && <ProductsPage onNavigate={handleNavigate} />}
+        {currentView === 'marketplace' && <MarketplacePage onNavigate={handleNavigate} />}
         {currentView === 'sales' && <SalesPage />}
         {currentView === 'customers' && <CustomersPage />}
         {currentView === 'invoices' && <InvoicesPage />}

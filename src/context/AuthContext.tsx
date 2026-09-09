@@ -1,7 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Business, UserProfile, UserRole } from '../types';
 import { dbService } from '../services/db';
-import { isSupabaseConfigured, supabase } from '../lib/supabase';
+import { auth, isFirebaseConfigured } from '../lib/firebase';
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as fbSignOut,
+  onAuthStateChanged,
+} from 'firebase/auth';
 
 interface RegisterData {
   fullName: string;
@@ -42,35 +48,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     setError(null);
     try {
-      if (isSupabaseConfigured() && supabase) {
-        const { data } = await supabase.auth.getSession();
-        if (data?.session?.user) {
-          const profile = await dbService.getProfile(data.session.user.id);
-          if (profile) {
-            if (profile.status === 'suspended') {
-              await supabase.auth.signOut();
-              setUser(null);
-              setBusiness(null);
-              setError('Your account has been suspended by the platform administrator.');
-              setLoading(false);
-              return;
-            }
-            setUser(profile);
-            const biz = await dbService.getBusiness(profile.businessId);
-            setBusiness(biz);
-            setLoading(false);
-            return;
-          }
-        }
-      }
-
-      // Check local session storage
+      // 1. Check local session storage key first
       const savedUserId = localStorage.getItem(AUTH_STORAGE_KEY);
       if (savedUserId) {
         const profile = await dbService.getProfile(savedUserId);
         if (profile) {
           if (profile.status === 'suspended') {
             localStorage.removeItem(AUTH_STORAGE_KEY);
+            if (auth) await fbSignOut(auth).catch(() => {});
             setUser(null);
             setBusiness(null);
             setError('Your account has been suspended by the platform administrator.');
@@ -79,9 +64,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const biz = await dbService.getBusiness(profile.businessId);
             setBusiness(biz);
           }
+          setLoading(false);
+          return;
         } else {
           localStorage.removeItem(AUTH_STORAGE_KEY);
         }
+      }
+
+      // 2. If Firebase Auth state is active
+      if (isFirebaseConfigured() && auth) {
+        const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+          if (fbUser) {
+            const profile = (await dbService.getProfile(fbUser.uid)) || (await dbService.getProfileByUsernameOrPhone(fbUser.email || ''));
+            if (profile) {
+              if (profile.status === 'suspended') {
+                await fbSignOut(auth).catch(() => {});
+                setUser(null);
+                setBusiness(null);
+                setError('Your account has been suspended by the platform administrator.');
+              } else {
+                setUser(profile);
+                const biz = await dbService.getBusiness(profile.businessId);
+                setBusiness(biz);
+                localStorage.setItem(AUTH_STORAGE_KEY, profile.id);
+              }
+            }
+          }
+          setLoading(false);
+        });
+        return () => unsubscribe();
       }
     } catch (err: any) {
       console.error('Session restoration error:', err);
@@ -103,36 +114,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setError('Please enter both identifier and password.');
         setLoading(false);
         return false;
-      }
-
-      // 1. If Supabase configured with email
-      if (isSupabaseConfigured() && supabase && identifier.includes('@')) {
-        const { data, error: authErr } = await supabase.auth.signInWithPassword({
-          email: identifier.trim(),
-          password,
-        });
-        if (authErr) {
-          setError(authErr.message);
-          setLoading(false);
-          return false;
-        }
-        if (data.user) {
-          const profile = await dbService.getProfile(data.user.id);
-          if (profile) {
-            if (profile.status === 'suspended') {
-              await supabase.auth.signOut();
-              setError('Account suspended. Please contact platform support.');
-              setLoading(false);
-              return false;
-            }
-            setUser(profile);
-            const biz = await dbService.getBusiness(profile.businessId);
-            setBusiness(biz);
-            localStorage.setItem(AUTH_STORAGE_KEY, profile.id);
-            setLoading(false);
-            return true;
-          }
-        }
       }
 
       // Brute-force rate limiting check
@@ -163,6 +144,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('eagle_auth_lockout');
       };
 
+      // 1. If Firebase Auth is active and user provided an email
+      if (isFirebaseConfigured() && auth && identifier.includes('@')) {
+        try {
+          const userCredential = await signInWithEmailAndPassword(auth, identifier.trim(), password);
+          if (userCredential.user) {
+            const profile =
+              (await dbService.getProfile(userCredential.user.uid)) ||
+              (await dbService.getProfileByUsernameOrPhone(identifier.trim()));
+            if (profile) {
+              if (profile.status === 'suspended') {
+                await fbSignOut(auth);
+                setError('Account suspended. Please contact platform support.');
+                setLoading(false);
+                return false;
+              }
+              clearFailures();
+              setUser(profile);
+              const biz = await dbService.getBusiness(profile.businessId);
+              setBusiness(biz);
+              localStorage.setItem(AUTH_STORAGE_KEY, profile.id);
+              setLoading(false);
+              return true;
+            }
+          }
+        } catch (fbErr: any) {
+          console.warn('Firebase Auth direct sign-in exception:', fbErr?.message);
+        }
+      }
+
       // 2. Look up user by username, phone, or email in unified DB engine
       const profile = await dbService.getProfileByUsernameOrPhone(identifier.trim());
       if (!profile) {
@@ -188,7 +198,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return registerFailure('Access Denied: Invalid administrator credentials.');
         }
 
-        // Verify this is the authorized master administrator account
+        // Verify authorized master administrator account
         if (profile.email?.toLowerCase() !== 'eaglebusinessmanager@gmail.com' && profile.id !== 'user-002') {
           return registerFailure('Access Denied: Unrecognized administrator identity.');
         }
@@ -298,22 +308,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       await dbService.createProfile(newProfile);
 
-      // If Supabase is active, register auth user
-      if (isSupabaseConfigured() && supabase && isEmail) {
+      // Register with Firebase Auth if email provided
+      if (isFirebaseConfigured() && auth && isEmail) {
         try {
-          await supabase.auth.signUp({
-            email: data.usernameOrPhone.trim().toLowerCase(),
-            password: data.password,
-            options: {
-              data: {
-                full_name: data.fullName,
-                username: cleanUsername,
-                business_id: newBizId,
-              },
-            },
-          });
-        } catch (supaErr) {
-          console.warn('Supabase auth signup warning:', supaErr);
+          await createUserWithEmailAndPassword(auth, data.usernameOrPhone.trim().toLowerCase(), data.password);
+        } catch (fbAuthErr) {
+          console.warn('Firebase Auth signup info:', fbAuthErr);
         }
       }
 
@@ -333,8 +333,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     setLoading(true);
     try {
-      if (isSupabaseConfigured() && supabase) {
-        await supabase.auth.signOut();
+      if (isFirebaseConfigured() && auth) {
+        await fbSignOut(auth).catch(() => {});
       }
       localStorage.removeItem(AUTH_STORAGE_KEY);
       setUser(null);
@@ -358,8 +358,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
     if (!user) return;
-    const updated = { ...user, ...updates, updatedAt: new Date().toISOString() };
-    setUser(updated);
+    const updated = await dbService.updateProfile(user.id, updates);
+    if (updated) {
+      setUser(updated);
+    }
   };
 
   const refreshAuth = async () => {

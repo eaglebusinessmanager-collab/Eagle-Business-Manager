@@ -14,7 +14,7 @@ import {
   Smartphone,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { isSupabaseConfigured } from '../../lib/supabase';
+import { isFirebaseConfigured } from '../../lib/firebase';
 import { PWAInstallButton } from '../../components/common/PWAInstallButton';
 
 export const BusinessProfilePage: React.FC = () => {
@@ -64,7 +64,7 @@ export const BusinessProfilePage: React.FC = () => {
     }
   };
 
-  const hasSupabase = isSupabaseConfigured();
+  const hasFirebase = isFirebaseConfigured();
 
   return (
     <div className="space-y-4 pb-20 md:pb-8 max-w-4xl mx-auto">
@@ -266,16 +266,16 @@ export const BusinessProfilePage: React.FC = () => {
             <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60">
               <div className="flex items-center gap-2">
                 <Database className="h-4 w-4 text-emerald-500" />
-                <span>Supabase PostgreSQL Cloud Backend</span>
+                <span>Google Cloud Firestore Engine</span>
               </div>
               <span
                 className={`font-mono font-bold px-2 py-0.5 rounded text-[10px] ${
-                  hasSupabase
+                  hasFirebase
                     ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                     : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
                 }`}
               >
-                {hasSupabase ? 'CONNECTED (RLS ACTIVE)' : 'LOCAL STORAGE ENGINE ACTIVE'}
+                {hasFirebase ? 'CONNECTED (FIRESTORE LIVE)' : 'LOCAL STORAGE ENGINE ACTIVE'}
               </span>
             </div>
 
