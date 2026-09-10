@@ -833,41 +833,6 @@ export const dbService = {
     return products[index];
   },
 
-  async updateProductModeration(
-    productId: string,
-    moderationStatus: ModerationStatus,
-    reason?: string,
-    adminId?: string
-  ): Promise<void> {
-    const products = getStored<Product[]>('products', INITIAL_PRODUCTS);
-    const idx = products.findIndex((p) => p.id === productId);
-    if (idx !== -1) {
-      products[idx] = {
-        ...products[idx],
-        moderationStatus,
-        moderationReason: reason,
-        moderatedBy: adminId || 'admin',
-        moderatedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setStored('products', products);
-    }
-
-    if (isFirebaseConfigured() && db) {
-      try {
-        await updateDoc(doc(db, 'products', productId), {
-          moderationStatus,
-          moderationReason: reason || '',
-          moderatedBy: adminId || 'admin',
-          moderatedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
-      } catch (err) {
-        console.warn('Firebase updateProductModeration error:', err);
-      }
-    }
-  },
-
   async deleteProduct(id: string, businessId?: string, _deletedBy?: string): Promise<boolean> {
     const products = getStored<Product[]>('products', INITIAL_PRODUCTS);
     const filtered = businessId
@@ -887,7 +852,8 @@ export const dbService = {
   },
 
   // Marketplace Safety & Abuse Reports
-  async reportProduct(report: ProductReport): Promise<void> {
+  async reportProduct(reportOrProductId: ProductReport | string, maybeReport?: ProductReport): Promise<void> {
+    const report: ProductReport = typeof reportOrProductId === 'string' ? maybeReport! : reportOrProductId;
     const reports = getStored<ProductReport[]>('reports', INITIAL_REPORTS);
     reports.unshift(report);
     setStored('reports', reports);
@@ -1759,5 +1725,9 @@ export const dbService = {
       return matchBiz && (matchBarcode || matchSku || matchId);
     });
     return found || null;
+  },
+
+  async lookupProductByBarcodeOrSku(businessId: string, code: string): Promise<Product | null> {
+    return this.getProductByBarcode(code, businessId);
   },
 };

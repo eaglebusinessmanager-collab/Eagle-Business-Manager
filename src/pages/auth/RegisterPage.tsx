@@ -12,6 +12,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { PWAInstallButton } from '../../components/common/PWAInstallButton';
 
 const BUSINESS_CATEGORIES = [
   'Retail & Supermarket',
@@ -88,6 +89,11 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
           <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
             Start managing your products, sales, and invoices with UGX 0 free-tier setup.
           </p>
+        </div>
+
+        {/* PWA Install Notice */}
+        <div className="mt-3 flex justify-center">
+          <PWAInstallButton />
         </div>
       </div>
 

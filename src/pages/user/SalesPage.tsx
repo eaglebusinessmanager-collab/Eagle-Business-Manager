@@ -20,6 +20,8 @@ import {
   Package,
   MessageCircle,
   ScanLine,
+  Share2,
+  FileDown,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { dbService } from '../../services/db';
@@ -49,6 +51,11 @@ export const SalesPage: React.FC = () => {
   const [productSearch, setProductSearch] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [saleSuccessMessage, setSaleSuccessMessage] = useState<string | null>(null);
+  const [lastCompletedSale, setLastCompletedSale] = useState<Sale | null>(null);
+
+  // Recipient selection mode: 'walkin' or 'existing'
+  const [recipientMode, setRecipientMode] = useState<'walkin' | 'existing'>('walkin');
+  const [recipientSearch, setRecipientSearch] = useState('');
 
   // Barcode / QR Scanner & Add Recipient Modal states
   const [showCameraScanner, setShowCameraScanner] = useState(false);
@@ -168,23 +175,73 @@ export const SalesPage: React.FC = () => {
       if (exists) return prev.map((c) => (c.id === saved.id ? saved : c));
       return [saved, ...prev];
     });
+    setRecipientMode('existing');
     setSelectedCustomerId(saved.id);
     setShowAddRecipientModal(false);
   };
 
-  const shareWhatsAppReceipt = (sale: Sale) => {
-    const text =
-      `*RECEIPT: ${sale.saleNumber}*\n` +
-      `*Business:* ${business?.name}\n` +
-      `*Client:* ${sale.customerName || 'Customer'}\n` +
-      `*Date:* ${new Date(sale.createdAt).toLocaleDateString()} ${new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}\n\n` +
-      `*ITEMS:*\n` +
-      sale.items.map((i) => `• ${i.productName} (${i.quantity}x @ ${formatCurrency(i.unitPrice)}) = ${formatCurrency(i.total)}`).join('\n') +
-      `\n\n*TOTAL PAID:* ${formatCurrency(sale.total)}\n` +
-      `*Payment Method:* ${sale.paymentMethod.replace('_', ' ').toUpperCase()} (${sale.paymentStatus.toUpperCase()})\n\n` +
-      `Thank you for shopping with ${business?.name || 'us'}!`;
-    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+  const generateReceiptText = (sale: Sale) => {
+    const itemsText = sale.items
+      .map(
+        (i) =>
+          `• ${i.productName} (${i.quantity}x @ ${currency} ${i.unitPrice.toLocaleString()}) = ${currency} ${(i.total || i.quantity * i.unitPrice).toLocaleString()}`
+      )
+      .join('\n');
+
+    return (
+      `==============================\n` +
+      `EAGLE BUSINESS MANAGER\n` +
+      `==============================\n` +
+      `Business: ${business?.name || 'Eagle Business Store'}\n` +
+      (business?.phone ? `Tel: ${business.phone}\n` : '') +
+      (business?.address ? `Location: ${business.address}\n` : '') +
+      `Receipt No: ${sale.saleNumber}\n` +
+      `Date: ${new Date(sale.createdAt).toLocaleDateString()} ${new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}\n` +
+      `Recipient: ${sale.customerName || 'WALK-IN CUSTOMER'}\n` +
+      `------------------------------\n` +
+      `ITEMS PURCHASED:\n${itemsText}\n` +
+      `------------------------------\n` +
+      `Subtotal: ${currency} ${sale.subtotal.toLocaleString()}\n` +
+      (sale.discount > 0 ? `Discount: -${currency} ${sale.discount.toLocaleString()}\n` : '') +
+      `TOTAL: ${currency} ${sale.total.toLocaleString()}\n` +
+      `Payment Method: ${sale.paymentMethod.replace('_', ' ').toUpperCase()}\n` +
+      `Amount Paid: ${currency} ${(sale.paymentStatus === 'paid' ? sale.total : 0).toLocaleString()}\n` +
+      `Balance: ${currency} ${(sale.paymentStatus === 'paid' ? 0 : sale.total).toLocaleString()}\n` +
+      `Status: ${sale.paymentStatus.toUpperCase()}\n` +
+      `==============================\n` +
+      `Thank you for your business!\n` +
+      `Powered by Eagle Business Manager`
+    );
+  };
+
+  const shareReceiptViaWhatsApp = (sale: Sale) => {
+    const text = generateReceiptText(sale);
+    const phone = sale.customerPhone ? sale.customerPhone.replace(/\D/g, '') : '';
+    const url = phone
+      ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
+      : `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
+  };
+
+  const handleShareReceipt = async (sale: Sale) => {
+    const text = generateReceiptText(sale);
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Receipt ${sale.saleNumber} - ${business?.name || 'Eagle Business Manager'}`,
+          text,
+        });
+        return;
+      } catch (err) {
+        // User cancelled or share unhandled; fall back to clipboard
+      }
+    }
+    await navigator.clipboard.writeText(text);
+    alert('Receipt copied to clipboard! You can paste and share it anywhere.');
+  };
+
+  const handleDownloadPdf = () => {
+    window.print();
   };
 
   const subtotal = cartItems.reduce((sum, i) => sum + i.total, 0);
@@ -237,8 +294,9 @@ export const SalesPage: React.FC = () => {
       setSelectedCustomerId('');
       setWalkinName('Walk-in Customer');
       setWalkinPhone('');
-      setSaleSuccessMessage(`Sale #${createdSale.saleNumber} completed successfully! Stock updated.`);
-      setTimeout(() => setSaleSuccessMessage(null), 5000);
+      setLastCompletedSale(createdSale);
+      setSaleSuccessMessage(`SALE COMPLETED ✓ Receipt #${createdSale.saleNumber} generated!`);
+      setTimeout(() => setSaleSuccessMessage(null), 8000);
 
       // Reload products & sales
       await loadData();
@@ -261,19 +319,6 @@ export const SalesPage: React.FC = () => {
 
   const formatCurrency = (val: number) => {
     return `${currency} ${val.toLocaleString()}`;
-  };
-
-  const shareReceiptViaWhatsApp = (sale: Sale) => {
-    const itemsText = sale.items
-      .map((item) => `• ${item.quantity}x ${item.productName} = ${currency} ${(item.total || item.quantity * item.unitPrice).toLocaleString()}`)
-      .join('\n');
-    const text = `*SALES RECEIPT: ${sale.saleNumber}*\nStore: ${business?.name || 'Eagle Business Store'}\nTel: ${business?.phone || ''}\nCustomer: ${sale.customerName || 'Walk-in Customer'}\nDate: ${new Date(sale.createdAt).toLocaleDateString()}\n\n*ITEMS PURCHASED:*\n${itemsText}\n\n*Subtotal:* ${currency} ${sale.subtotal.toLocaleString()}\n${sale.discount > 0 ? `*Discount:* -${currency} ${sale.discount.toLocaleString()}\n` : ''}*TOTAL PAID:* ${currency} ${sale.total.toLocaleString()}\n*Payment Method:* ${sale.paymentMethod.replace('_', ' ').toUpperCase()}\n*Status:* ${sale.paymentStatus.toUpperCase()}\n\nThank you for shopping with us!\nPowered by Eagle Business Manager`;
-
-    const phone = sale.customerPhone ? sale.customerPhone.replace(/\D/g, '') : '';
-    const url = phone
-      ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
-      : `https://wa.me/?text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank');
   };
 
   // Filtered sales for history tab
@@ -324,7 +369,48 @@ export const SalesPage: React.FC = () => {
         </div>
       </div>
 
-      {saleSuccessMessage && (
+      {lastCompletedSale && (
+        <div
+          id="sale-completed-banner"
+          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border-2 border-emerald-500/40 text-emerald-900 dark:text-emerald-100 shadow-sm animate-in fade-in duration-200"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white font-black text-lg shadow-sm">
+              ✓
+            </div>
+            <div>
+              <p className="text-sm font-black tracking-wide text-emerald-900 dark:text-emerald-100">
+                SALE COMPLETED ✓
+              </p>
+              <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5">
+                Receipt #{lastCompletedSale.saleNumber} • Total: {currency} {lastCompletedSale.total.toLocaleString()} • Items: {lastCompletedSale.items.length}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              id="view-receipt-btn"
+              type="button"
+              onClick={() => setSelectedSaleForReceipt(lastCompletedSale)}
+              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-md transition active:scale-95 flex items-center gap-1.5 cursor-pointer"
+            >
+              <Receipt className="h-4 w-4" />
+              <span>[ VIEW RECEIPT ]</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setLastCompletedSale(null)}
+              className="p-2 rounded-xl text-emerald-700 hover:bg-emerald-100 dark:text-emerald-300 dark:hover:bg-emerald-900 transition cursor-pointer"
+              title="Dismiss"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {saleSuccessMessage && !lastCompletedSale && (
         <div className="flex items-center gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 p-3 text-xs text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
           <CheckCircle className="h-4 w-4 shrink-0 text-emerald-600" />
           <span>{saleSuccessMessage}</span>
@@ -502,52 +588,113 @@ export const SalesPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Customer Selector */}
+              {/* SELECT RECIPIENT */}
               <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5 text-xs">
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block font-semibold text-slate-700 dark:text-slate-300">
-                      Customer / Recipient
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setShowAddRecipientModal(true)}
-                      className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5 cursor-pointer"
-                    >
-                      <Plus className="h-3 w-3" />
-                      <span>+ New Recipient</span>
-                    </button>
-                  </div>
-                  <select
-                    value={selectedCustomerId}
-                    onChange={(e) => setSelectedCustomerId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                <div className="flex items-center justify-between">
+                  <label className="block font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
+                    Select Recipient
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddRecipientModal(true)}
+                    className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 bg-blue-50 dark:bg-blue-950/50 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-900 cursor-pointer active:scale-95 transition"
                   >
-                    <option value="">Walk-in Customer (Non-registered)</option>
-                    {customers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} ({c.phone})
-                      </option>
-                    ))}
-                  </select>
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>+ Add New Recipient</span>
+                  </button>
                 </div>
 
-                {!selectedCustomerId && (
+                {/* 2 Recipient Segment Modes */}
+                <div className="grid grid-cols-2 gap-1.5 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRecipientMode('walkin');
+                      setSelectedCustomerId('');
+                    }}
+                    className={`py-1.5 rounded-lg font-bold text-xs transition ${
+                      recipientMode === 'walkin'
+                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                        : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                    }`}
+                  >
+                    Walk-in Customer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRecipientMode('existing')}
+                    className={`py-1.5 rounded-lg font-bold text-xs transition ${
+                      recipientMode === 'existing'
+                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                        : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                    }`}
+                  >
+                    Existing Recipient ({customers.length})
+                  </button>
+                </div>
+
+                {recipientMode === 'walkin' ? (
                   <div className="grid grid-cols-2 gap-2">
                     <input
                       type="text"
                       value={walkinName}
                       onChange={(e) => setWalkinName(e.target.value)}
-                      placeholder="Customer Name"
-                      className="px-2.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                      placeholder="Customer Name (Walk-in)"
+                      className="px-2.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                     />
                     <input
                       type="text"
                       value={walkinPhone}
                       onChange={(e) => setWalkinPhone(e.target.value)}
                       placeholder="Phone (Optional)"
-                      className="px-2.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                      className="px-2.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs"
                     />
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                      <input
+                        type="text"
+                        placeholder="Search existing recipients by name or phone..."
+                        value={recipientSearch}
+                        onChange={(e) => setRecipientSearch(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs"
+                      />
+                    </div>
+                    <select
+                      value={selectedCustomerId}
+                      onChange={(e) => setSelectedCustomerId(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                    >
+                      <option value="">-- Choose Existing Recipient --</option>
+                      {customers
+                        .filter(
+                          (c) =>
+                            !recipientSearch ||
+                            c.name.toLowerCase().includes(recipientSearch.toLowerCase()) ||
+                            c.phone.includes(recipientSearch)
+                        )
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name} • {c.phone} {c.address ? `(${c.address})` : ''}
+                          </option>
+                        ))}
+                    </select>
+                    {selectedCustomerId && (
+                      <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-[11px] text-blue-700 dark:text-blue-300">
+                        <span>
+                          Selected: <strong>{customers.find((c) => c.id === selectedCustomerId)?.name}</strong>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCustomerId('')}
+                          className="text-rose-500 hover:underline cursor-pointer"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -751,45 +898,64 @@ export const SalesPage: React.FC = () => {
 
             {/* Printable Receipt Area */}
             <div id="printable-receipt" className="printable-document flex-1 overflow-y-auto py-4 space-y-4 text-xs font-mono">
-              {/* Business Header */}
+              {/* Official Branding Header */}
               <div className="text-center border-b border-dashed border-slate-300 dark:border-slate-700 pb-3">
-                <h2 className="text-base font-extrabold text-slate-900 dark:text-white">
-                  {business?.name}
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-[10px] font-black uppercase tracking-wider mb-1.5">
+                  Eagle Business Manager
+                </div>
+                <h2 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                  {business?.name || 'Eagle Business Store'}
                 </h2>
-                <p className="text-[11px] text-slate-500">{business?.address}</p>
-                <p className="text-[11px] text-slate-500">Tel: {business?.phone}</p>
-                <p className="text-[10px] text-slate-400 mt-1">Receipt #: {selectedSaleForReceipt.saleNumber}</p>
-                <p className="text-[10px] text-slate-400">
-                  Date: {new Date(selectedSaleForReceipt.createdAt).toLocaleString()}
-                </p>
+                {business?.address && <p className="text-[11px] text-slate-500">{business.address}</p>}
+                {business?.phone && <p className="text-[11px] text-slate-500">Tel: {business.phone}</p>}
+                <div className="mt-2 pt-2 border-t border-dotted border-slate-200 dark:border-slate-800 flex justify-between text-[10px] text-slate-400 font-mono">
+                  <span>RECEIPT: #{selectedSaleForReceipt.saleNumber}</span>
+                  <span>{new Date(selectedSaleForReceipt.createdAt).toLocaleDateString()} {new Date(selectedSaleForReceipt.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
               </div>
 
-              {/* Customer & Attendant Details */}
-              <div className="flex justify-between text-[11px] text-slate-600 dark:text-slate-300">
-                <div>
-                  <span>Client: </span>
-                  <strong>{selectedSaleForReceipt.customerName || 'Walk-in'}</strong>
+              {/* Recipient / Customer Details */}
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700/60 text-[11px] space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Recipient:</span>
+                  <span className="font-bold text-slate-900 dark:text-white uppercase">
+                    {selectedSaleForReceipt.customerName || 'WALK-IN CUSTOMER'}
+                  </span>
                 </div>
-                <div>
-                  <span>Payment: </span>
-                  <strong className="uppercase">{selectedSaleForReceipt.paymentMethod.replace('_', ' ')}</strong>
+                {selectedSaleForReceipt.customerPhone && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Phone:</span>
+                    <span className="font-mono text-slate-700 dark:text-slate-300">
+                      {selectedSaleForReceipt.customerPhone}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Payment Method:</span>
+                  <span className="font-bold uppercase text-slate-700 dark:text-slate-300">
+                    {selectedSaleForReceipt.paymentMethod.replace('_', ' ')}
+                  </span>
                 </div>
               </div>
 
               {/* Items Table */}
-              <div className="border-t border-b border-dashed border-slate-300 dark:border-slate-700 py-2 space-y-1.5">
+              <div className="border-t border-b border-dashed border-slate-300 dark:border-slate-700 py-2.5 space-y-1.5">
                 <div className="flex justify-between text-[10px] font-bold text-slate-400">
                   <span>ITEM</span>
-                  <span>QTY x PRICE</span>
+                  <span>QTY x UNIT</span>
                   <span>TOTAL</span>
                 </div>
                 {selectedSaleForReceipt.items.map((item, idx) => (
                   <div key={idx} className="flex justify-between items-start text-[11px]">
-                    <span className="truncate max-w-[150px]">{item.productName}</span>
+                    <span className="truncate max-w-[160px] font-medium text-slate-800 dark:text-slate-200">
+                      {item.productName}
+                    </span>
                     <span className="text-slate-500">
                       {item.quantity} x {item.unitPrice.toLocaleString()}
                     </span>
-                    <span className="font-bold">{item.total.toLocaleString()}</span>
+                    <span className="font-bold font-mono text-slate-900 dark:text-white">
+                      {(item.total || item.quantity * item.unitPrice).toLocaleString()}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -797,25 +963,41 @@ export const SalesPage: React.FC = () => {
               {/* Financial Totals */}
               <div className="space-y-1 text-[11px]">
                 <div className="flex justify-between">
-                  <span>Subtotal:</span>
-                  <span>{formatCurrency(selectedSaleForReceipt.subtotal)}</span>
+                  <span className="text-slate-500">Subtotal:</span>
+                  <span className="font-mono">{formatCurrency(selectedSaleForReceipt.subtotal)}</span>
                 </div>
                 {selectedSaleForReceipt.discount > 0 && (
                   <div className="flex justify-between text-rose-500">
                     <span>Discount:</span>
-                    <span>-{formatCurrency(selectedSaleForReceipt.discount)}</span>
+                    <span className="font-mono">-{formatCurrency(selectedSaleForReceipt.discount)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-sm font-extrabold pt-1 border-t border-slate-200 dark:border-slate-800">
+                <div className="flex justify-between text-sm font-black pt-1.5 border-t border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white">
                   <span>TOTAL ({currency}):</span>
-                  <span>{selectedSaleForReceipt.total.toLocaleString()}</span>
+                  <span className="font-mono text-blue-600 dark:text-blue-400">
+                    {selectedSaleForReceipt.total.toLocaleString()}
+                  </span>
                 </div>
+                <div className="flex justify-between text-[11px] pt-1">
+                  <span className="text-slate-500">Amount Paid:</span>
+                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(selectedSaleForReceipt.paymentStatus === 'paid' ? selectedSaleForReceipt.total : 0)}
+                  </span>
+                </div>
+                {selectedSaleForReceipt.paymentStatus !== 'paid' && (
+                  <div className="flex justify-between text-[11px] text-rose-600 dark:text-rose-400">
+                    <span>Balance Due:</span>
+                    <span className="font-mono font-bold">
+                      {formatCurrency(selectedSaleForReceipt.total)}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Status Pill in Receipt */}
               <div className="text-center pt-2">
                 <span
-                  className={`inline-block px-3 py-1 rounded-full text-xs font-extrabold uppercase ${
+                  className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
                     selectedSaleForReceipt.paymentStatus === 'paid'
                       ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                       : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
@@ -826,40 +1008,66 @@ export const SalesPage: React.FC = () => {
               </div>
 
               {/* Footer text */}
-              <div className="text-center text-[10px] text-slate-400 pt-2 border-t border-dashed border-slate-300 dark:border-slate-700">
-                <p>{business?.receiptFooter || 'Thank you for your business!'}</p>
-                <p className="mt-0.5">Powered by Eagle Business Manager</p>
+              <div className="text-center text-[10px] text-slate-400 pt-2 border-t border-dashed border-slate-300 dark:border-slate-700 space-y-0.5">
+                <p className="font-medium text-slate-600 dark:text-slate-400">
+                  {business?.receiptFooter || 'Thank you for shopping with us!'}
+                </p>
+                <p className="text-[9px] text-slate-400">Official Receipt • Powered by Eagle Business Manager</p>
               </div>
             </div>
 
-            {/* Receipt Modal Footer Actions */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 no-print">
+            {/* Receipt Modal Footer Actions - 4 One-Tap Action Buttons */}
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2 no-print">
               {selectedSaleForReceipt.paymentStatus !== 'paid' && (
                 <button
                   type="button"
                   onClick={() => handleUpdatePaymentStatus(selectedSaleForReceipt.id, 'paid')}
-                  className="px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition"
+                  className="w-full py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition"
                 >
                   Mark as Fully Paid
                 </button>
               )}
-              <div className="flex items-center gap-2 ml-auto">
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                 <button
+                  id="receipt-download-pdf"
                   type="button"
-                  onClick={() => shareReceiptViaWhatsApp(selectedSaleForReceipt)}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition"
-                  title="Share Receipt directly to Customer on WhatsApp"
+                  onClick={handleDownloadPdf}
+                  className="flex items-center justify-center gap-1 px-2.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white text-[11px] font-bold transition active:scale-95 shadow-xs cursor-pointer"
+                  title="Download / Save as PDF via Print Dialog"
                 >
-                  <MessageCircle className="h-3.5 w-3.5" />
-                  <span>Share to WhatsApp</span>
+                  <FileDown className="h-3.5 w-3.5" />
+                  <span>PDF</span>
                 </button>
                 <button
+                  id="receipt-share-btn"
+                  type="button"
+                  onClick={() => handleShareReceipt(selectedSaleForReceipt)}
+                  className="flex items-center justify-center gap-1 px-2.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold transition active:scale-95 shadow-xs cursor-pointer"
+                  title="Share receipt text or copy to clipboard"
+                >
+                  <Share2 className="h-3.5 w-3.5" />
+                  <span>SHARE</span>
+                </button>
+                <button
+                  id="receipt-whatsapp-btn"
+                  type="button"
+                  onClick={() => shareReceiptViaWhatsApp(selectedSaleForReceipt)}
+                  className="flex items-center justify-center gap-1 px-2.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition active:scale-95 shadow-xs cursor-pointer"
+                  title="Send receipt directly to recipient on WhatsApp"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  <span>WHATSAPP</span>
+                </button>
+                <button
+                  id="receipt-print-btn"
                   type="button"
                   onClick={() => window.print()}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-xs transition"
+                  className="flex items-center justify-center gap-1 px-2.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold transition active:scale-95 shadow-xs cursor-pointer"
+                  title="Print receipt on thermal or standard printer"
                 >
                   <Printer className="h-3.5 w-3.5" />
-                  <span>Print Receipt</span>
+                  <span>PRINT</span>
                 </button>
               </div>
             </div>

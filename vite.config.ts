@@ -15,7 +15,7 @@ export default defineConfig(() => {
         manifest: {
           id: '/',
           name: 'Eagle Business Manager',
-          short_name: 'EagleManager',
+          short_name: 'Eagle Business Manager',
           description: 'All-in-one business management platform for small businesses.',
           theme_color: '#0f172a',
           background_color: '#0f172a',

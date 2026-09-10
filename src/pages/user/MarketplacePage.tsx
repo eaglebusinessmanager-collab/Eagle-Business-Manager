@@ -283,11 +283,20 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
     if (!reportProductTarget) return;
 
     try {
-      await dbService.reportProduct(reportProductTarget.id, {
+      let reasonType: 'counterfeit' | 'misleading' | 'inappropriate' | 'out_of_stock' | 'scam' | 'other' = 'other';
+      if (reportReason.includes('counterfeit')) reasonType = 'counterfeit';
+      else if (reportReason.includes('Misleading')) reasonType = 'misleading';
+      else if (reportReason.includes('unresponsive') || reportReason.includes('stock')) reasonType = 'out_of_stock';
+      else if (reportReason.includes('scam')) reasonType = 'scam';
+      else if (reportReason.includes('Inappropriate')) reasonType = 'inappropriate';
+
+      await dbService.reportProduct({
         id: 'rep-' + Date.now(),
         productId: reportProductTarget.id,
         productName: reportProductTarget.name,
-        reason: `${reportReason}: ${reportDetails}`,
+        sellerName: reportProductTarget.businessName || reportProductTarget.sellerName || '',
+        reason: reasonType,
+        details: `${reportReason}. Details: ${reportDetails || 'None provided'}`,
         reporterId: user?.id || 'guest',
         reporterName: user?.fullName || 'Anonymous User',
         status: 'pending',
