@@ -174,19 +174,238 @@ export interface Invoice {
   notes?: string;
 }
 
-export type AnnouncementType = 'info' | 'warning' | 'promotion' | 'update';
+export type AnnouncementType = 'info' | 'warning' | 'promotion' | 'update' | 'alert';
+export type AnnouncementPriority = 'normal' | 'important' | 'urgent';
 
 export interface Announcement {
   id: string;
   title: string;
   message: string;
   type: AnnouncementType;
+  priority?: AnnouncementPriority;
+  imageUrl?: string;
+  targetUserIds?: string[]; // empty means all users
+  isPinned?: boolean;
   startDate: string;
   endDate: string;
   isActive: boolean;
   createdAt: string;
   createdBy: string;
 }
+
+export interface Supplier {
+  id: string;
+  businessId: string;
+  name: string;
+  phone: string;
+  email?: string;
+  address?: string;
+  contactPerson?: string;
+  category?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ExpenseCategory =
+  | 'rent'
+  | 'utilities'
+  | 'salaries'
+  | 'inventory'
+  | 'marketing'
+  | 'transport'
+  | 'equipment'
+  | 'maintenance'
+  | 'taxes'
+  | 'other';
+
+export interface Expense {
+  id: string;
+  businessId: string;
+  title: string;
+  amount: number;
+  category: ExpenseCategory;
+  date: string;
+  paymentMethod: PaymentMethod;
+  notes?: string;
+  receiptUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string;
+}
+
+export type QuotationStatus = 'draft' | 'sent' | 'accepted' | 'declined' | 'invoiced' | 'expired';
+
+export interface Quotation {
+  id: string;
+  businessId: string;
+  quotationNumber: string;
+  customerId?: string;
+  customerName: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  customerAddress?: string;
+  items: SaleItem[];
+  subtotal: number;
+  discount: number;
+  total: number;
+  validityDate: string;
+  status: QuotationStatus;
+  notes?: string;
+  convertedInvoiceId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type DocumentType =
+  | 'quotation'
+  | 'estimate'
+  | 'purchase_order'
+  | 'delivery_note'
+  | 'invoice'
+  | 'receipt'
+  | 'statement';
+
+export interface BusinessDocument {
+  id: string;
+  businessId: string;
+  documentType: DocumentType;
+  documentNumber: string;
+  customerId?: string;
+  customerName: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  customerAddress?: string;
+  supplierId?: string;
+  supplierName?: string;
+  items: SaleItem[];
+  subtotal: number;
+  discount: number;
+  total: number;
+  paymentStatus?: PaymentStatus;
+  date: string;
+  dueDate?: string;
+  notes?: string;
+  terms?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CalendarEventType =
+  | 'appointment'
+  | 'task'
+  | 'followup'
+  | 'payment_reminder'
+  | 'event'
+  | 'delivery'
+  | 'other';
+
+export interface CalendarEvent {
+  id: string;
+  businessId: string;
+  title: string;
+  description?: string;
+  startDate: string; // ISO string
+  endDate: string; // ISO string
+  allDay?: boolean;
+  type: CalendarEventType;
+  status: 'pending' | 'completed' | 'cancelled';
+  customerId?: string;
+  customerName?: string;
+  reminderMinutes?: number;
+  reminderSent?: boolean;
+  color?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type NoteCategory = 'general' | 'customer' | 'supplier' | 'daily' | 'reminder';
+
+export interface BusinessNote {
+  id: string;
+  businessId: string;
+  title: string;
+  content: string;
+  category: NoteCategory;
+  isPinned: boolean;
+  tags?: string[];
+  relatedCustomerId?: string;
+  relatedCustomerName?: string;
+  relatedSupplierId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type StockAdjustmentReason =
+  | 'damaged'
+  | 'lost'
+  | 'expired'
+  | 'found'
+  | 'correction'
+  | 'returned_to_supplier'
+  | 'other';
+
+export interface StockAdjustment {
+  id: string;
+  businessId: string;
+  productId: string;
+  productName: string;
+  sku: string;
+  previousQuantity: number;
+  adjustmentAmount: number; // positive or negative
+  newQuantity: number;
+  reason: StockAdjustmentReason;
+  notes?: string;
+  userName: string;
+  userId: string;
+  createdAt: string;
+}
+
+export type RecycleBinItemType =
+  | 'product'
+  | 'customer'
+  | 'supplier'
+  | 'note'
+  | 'quotation'
+  | 'invoice'
+  | 'expense';
+
+export interface RecycleBinItem {
+  id: string;
+  businessId: string;
+  itemType: RecycleBinItemType;
+  originalId: string;
+  itemName: string;
+  itemData: Record<string, unknown>;
+  deletedBy: string;
+  deletedByName: string;
+  deletedAt: string;
+}
+
+export interface DocumentPrefixConfig {
+  invoicePrefix: string;
+  receiptPrefix: string;
+  quotationPrefix: string;
+  estimatePrefix: string;
+  purchaseOrderPrefix: string;
+  deliveryNotePrefix: string;
+}
+
+export interface ReceiptCustomizationConfig {
+  businessName?: string;
+  logoUrl?: string;
+  phone?: string;
+  whatsapp?: string;
+  address?: string;
+  email?: string;
+  receiptFooter?: string;
+  thankYouMessage?: string;
+  currency?: string;
+  layout?: 'standard' | 'compact' | 'thermal';
+  prefixes?: DocumentPrefixConfig;
+}
+
+export type ReceiptConfig = ReceiptCustomizationConfig;
 
 export interface AppSetting {
   id: string;

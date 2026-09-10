@@ -8,6 +8,7 @@ import { Navbar } from './components/common/Navbar';
 import { MobileBottomNav } from './components/common/MobileBottomNav';
 import { OfflineIndicator } from './components/common/OfflineIndicator';
 import { FloatingSupportButton } from './components/common/FloatingSupportButton';
+import { GlobalSearchModal } from './components/common/GlobalSearchModal';
 
 // Auth Pages
 import { LoginPage } from './pages/auth/LoginPage';
@@ -23,6 +24,15 @@ import { ReportsPage } from './pages/user/ReportsPage';
 import { BusinessProfilePage } from './pages/user/BusinessProfilePage';
 import { MarketplacePage } from './pages/user/MarketplacePage';
 import { QuickScanPage } from './pages/user/QuickScanPage';
+import { CalendarPage } from './pages/user/CalendarPage';
+import { QuotationsPage } from './pages/user/QuotationsPage';
+import { SuppliersPage } from './pages/user/SuppliersPage';
+import { ExpensesPage } from './pages/user/ExpensesPage';
+import { StockAdjustmentsPage } from './pages/user/StockAdjustmentsPage';
+import { NotesPage } from './pages/user/NotesPage';
+import { DocumentsPage } from './pages/user/DocumentsPage';
+import { RecycleBinPage } from './pages/user/RecycleBinPage';
+import { BackupPage } from './pages/user/BackupPage';
 
 // Admin Pages
 import { AdminDashboard } from './pages/admin/AdminDashboard';
@@ -42,6 +52,7 @@ const MainApp: React.FC = () => {
   const [currentView, setCurrentView] = useState<string>('login');
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [dismissedAnnouncements, setDismissedAnnouncements] = useState<string[]>([]);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   // Dark mode state
   const [darkMode, setDarkMode] = useState<boolean>(() => {
@@ -69,6 +80,18 @@ const MainApp: React.FC = () => {
       dbService.getActiveAnnouncements().then(setAnnouncements).catch(console.error);
     }
   }, [isAuthenticated]);
+
+  // Global Keyboard Shortcut for Search (Ctrl+K or Cmd+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // CRITICAL APPLICATION FLOW:
   // When user is not authenticated, ONLY allow 'login' or 'register'.
@@ -192,8 +215,16 @@ const MainApp: React.FC = () => {
       <Navbar
         currentView={currentView}
         onNavigate={handleNavigate}
+        onOpenSearch={() => setIsSearchOpen(true)}
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
+      />
+
+      {/* Universal Search Modal (Accessible anywhere via button or Ctrl/Cmd+K) */}
+      <GlobalSearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onNavigate={handleNavigate}
       />
 
       {/* Platform Broadcast Announcement Banners */}
@@ -235,14 +266,28 @@ const MainApp: React.FC = () => {
       {/* Main View Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
         {/* USER PORTAL ROUTES */}
-        {currentView === 'dashboard' && <UserDashboard onNavigate={handleNavigate} />}
+        {currentView === 'dashboard' && (
+          <UserDashboard
+            onNavigate={handleNavigate}
+            onOpenSearch={() => setIsSearchOpen(true)}
+          />
+        )}
         {currentView === 'products' && <ProductsPage onNavigate={handleNavigate} />}
         {currentView === 'marketplace' && <MarketplacePage onNavigate={handleNavigate} />}
         {currentView === 'quick-scan' && <QuickScanPage onNavigate={handleNavigate} />}
         {currentView === 'sales' && <SalesPage />}
+        {currentView === 'quotations' && <QuotationsPage onNavigate={handleNavigate} />}
         {currentView === 'customers' && <CustomersPage />}
         {currentView === 'invoices' && <InvoicesPage />}
+        {currentView === 'calendar' && <CalendarPage />}
+        {currentView === 'expenses' && <ExpensesPage />}
+        {currentView === 'suppliers' && <SuppliersPage />}
+        {currentView === 'stock-adjustments' && <StockAdjustmentsPage />}
+        {currentView === 'notes' && <NotesPage />}
+        {currentView === 'documents' && <DocumentsPage />}
         {currentView === 'reports' && <ReportsPage />}
+        {currentView === 'recycle-bin' && <RecycleBinPage />}
+        {currentView === 'backup' && <BackupPage />}
         {currentView === 'profile' && <BusinessProfilePage />}
 
         {/* ADMIN PORTAL ROUTES (Strictly Protected) */}

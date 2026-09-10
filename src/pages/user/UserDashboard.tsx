@@ -8,17 +8,23 @@ import {
   PlusCircle,
   FileText,
   BarChart3,
-  ArrowUpRight,
   Clock,
-  Sparkles,
   Info,
   TrendingUp,
   Store,
   Search,
   ArrowRight,
-  Globe,
   MapPin,
-  ExternalLink,
+  Calendar,
+  Truck,
+  TrendingDown,
+  SlidersHorizontal,
+  BookOpen,
+  Receipt,
+  Trash2,
+  Database,
+  Sparkles,
+  Command,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { dbService } from '../../services/db';
@@ -31,6 +37,7 @@ interface UserDashboardProps {
   onOpenQuickSale?: () => void;
   onOpenAddProduct?: () => void;
   onOpenAddCustomer?: () => void;
+  onOpenSearch?: () => void;
 }
 
 export const UserDashboard: React.FC<UserDashboardProps> = ({
@@ -38,6 +45,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   onOpenQuickSale,
   onOpenAddProduct,
   onOpenAddCustomer,
+  onOpenSearch,
 }) => {
   const { user, business } = useAuth();
   const [sales, setSales] = useState<Sale[]>([]);
@@ -45,6 +53,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [marketplaceProducts, setMarketplaceProducts] = useState<Product[]>([]);
   const [marketplaceSearch, setMarketplaceSearch] = useState('');
+  const [upcomingEventsCount, setUpcomingEventsCount] = useState(0);
+  const [monthlyExpensesTotal, setMonthlyExpensesTotal] = useState(0);
+  const [quotationsCount, setQuotationsCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const currency = business?.currency || 'UGX';
@@ -53,16 +64,31 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
     if (!business) return;
     setLoading(true);
     try {
-      const [sList, pList, annList, mList] = await Promise.all([
+      const [sList, pList, annList, mList, evts, exps, quos] = await Promise.all([
         dbService.getSales(business.id),
         dbService.getProducts(business.id),
         dbService.getActiveAnnouncements(),
         dbService.getAllMarketplaceProducts(),
+        dbService.getCalendarEvents(business.id),
+        dbService.getExpenses(business.id),
+        dbService.getQuotations(business.id),
       ]);
       setSales(sList);
       setProducts(pList);
       setAnnouncements(annList);
       setMarketplaceProducts(mList);
+
+      const today = new Date().toISOString().split('T')[0];
+      const upcoming = evts.filter((e) => e.startDate >= today && e.status !== 'cancelled').length;
+      setUpcomingEventsCount(upcoming);
+
+      const currentMonth = today.substring(0, 7);
+      const mExpenses = exps
+        .filter((e) => e.date.startsWith(currentMonth))
+        .reduce((sum, e) => sum + e.amount, 0);
+      setMonthlyExpensesTotal(mExpenses);
+
+      setQuotationsCount(quos.length);
     } catch (e) {
       console.error('Error loading user dashboard data:', e);
     } finally {
@@ -127,7 +153,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">
-              {business?.name || 'Enterprise Dashboard'}
+              {business?.name || 'Eagle Business Manager'}
             </h1>
             <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-mono text-[10px] font-bold">
               {business?.category || 'Retail'}
@@ -139,14 +165,29 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {onOpenSearch && (
+            <button
+              onClick={onOpenSearch}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+              title="Global Search across all business records"
+            >
+              <Search className="h-4 w-4 text-blue-600" />
+              <span>Universal Search</span>
+              <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white dark:bg-slate-900 text-slate-500 rounded border border-slate-200 dark:border-slate-700">
+                ⌘K
+              </kbd>
+            </button>
+          )}
+
           <PWAInstallButton variant="banner" />
+          
           <button
             onClick={() => onNavigate('sales')}
             className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-blue-700 active:scale-95 transition cursor-pointer"
           >
             <ShoppingBag className="h-4 w-4" />
-            <span>Record New Sale</span>
+            <span>Record Sale</span>
           </button>
         </div>
       </div>
@@ -187,10 +228,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
         />
       </div>
 
-      {/* Quick Action Buttons Bar */}
+      {/* Quick Operations Bar */}
       <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-          Quick Operations
+          Frequent Actions
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
           <button
@@ -208,6 +249,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
             <span className="text-xs font-bold">Add Product</span>
           </button>
           <button
+            onClick={() => onNavigate('quotations')}
+            className="flex flex-col items-center justify-center p-3 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 transition active:scale-95 border border-indigo-100 dark:border-indigo-900/40 text-center cursor-pointer"
+          >
+            <FileText className="h-5 w-5 mb-1 text-indigo-600 dark:text-indigo-400" />
+            <span className="text-xs font-bold">Quotations</span>
+          </button>
+          <button
             onClick={() => onNavigate('customers')}
             className="flex flex-col items-center justify-center p-3 rounded-xl bg-purple-50/80 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 hover:bg-purple-100 transition active:scale-95 border border-purple-100 dark:border-purple-900/40 text-center cursor-pointer"
           >
@@ -215,29 +263,204 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
             <span className="text-xs font-bold">Add Customer</span>
           </button>
           <button
-            onClick={() => onNavigate('invoices')}
-            className="flex flex-col items-center justify-center p-3 rounded-xl bg-cyan-50/80 dark:bg-cyan-950/40 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 transition active:scale-95 border border-cyan-100 dark:border-cyan-900/40 text-center cursor-pointer"
+            onClick={() => onNavigate('expenses')}
+            className="flex flex-col items-center justify-center p-3 rounded-xl bg-rose-50/80 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 transition active:scale-95 border border-rose-100 dark:border-rose-900/40 text-center cursor-pointer"
           >
-            <FileText className="h-5 w-5 mb-1 text-cyan-600 dark:text-cyan-400" />
-            <span className="text-xs font-bold">Create Invoice</span>
+            <TrendingDown className="h-5 w-5 mb-1 text-rose-600 dark:text-rose-400" />
+            <span className="text-xs font-bold">Expenses</span>
           </button>
           <button
-            onClick={() => onNavigate('reports')}
+            onClick={() => onNavigate('calendar')}
             className="flex flex-col items-center justify-center p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100 transition active:scale-95 border border-amber-100 dark:border-amber-900/40 text-center cursor-pointer"
           >
-            <BarChart3 className="h-5 w-5 mb-1 text-amber-600 dark:text-amber-400" />
-            <span className="text-xs font-bold">Reports</span>
+            <Calendar className="h-5 w-5 mb-1 text-amber-600 dark:text-amber-400" />
+            <span className="text-xs font-bold">Calendar</span>
           </button>
-          <button
-            onClick={() => onNavigate('marketplace')}
-            className="flex flex-col items-center justify-center p-3 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 transition active:scale-95 border border-indigo-200 dark:border-indigo-900/60 text-center relative cursor-pointer"
+        </div>
+      </div>
+
+      {/* Business Workspace & Operational Hub (Upgraded System Modules) */}
+      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+              <Sparkles className="h-4 w-4 text-amber-500" />
+              <span>Business Management Hub</span>
+            </h3>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Direct access to all commercial tools, supply chain tracking, and data security.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+          {/* Calendar Card */}
+          <div
+            onClick={() => onNavigate('calendar')}
+            className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 transition cursor-pointer group"
           >
-            <span className="absolute -top-1.5 -right-1 px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[9px] font-extrabold uppercase">
-              Live
-            </span>
-            <Store className="h-5 w-5 mb-1 text-indigo-600 dark:text-indigo-400" />
-            <span className="text-xs font-bold">Marketplace</span>
-          </button>
+            <div className="flex items-center justify-between mb-2">
+              <div className="h-8 w-8 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 flex items-center justify-center">
+                <Calendar className="h-4 w-4" />
+              </div>
+              <span className="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
+                {upcomingEventsCount} upcoming
+              </span>
+            </div>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition">
+              Business Calendar
+            </h4>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Appointments, deliveries & reminders
+            </p>
+          </div>
+
+          {/* Quotations Card */}
+          <div
+            onClick={() => onNavigate('quotations')}
+            className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 transition cursor-pointer group"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="h-8 w-8 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-600 flex items-center justify-center">
+                <FileText className="h-4 w-4" />
+              </div>
+              <span className="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+                {quotationsCount} quotes
+              </span>
+            </div>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 transition">
+              Quotations & Estimates
+            </h4>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Price estimates with 1-click invoice conversion
+            </p>
+          </div>
+
+          {/* Expenses Card */}
+          <div
+            onClick={() => onNavigate('expenses')}
+            className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-rose-50/50 dark:hover:bg-rose-950/30 transition cursor-pointer group"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="h-8 w-8 rounded-xl bg-rose-100 dark:bg-rose-950 text-rose-600 flex items-center justify-center">
+                <TrendingDown className="h-4 w-4" />
+              </div>
+              <span className="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300">
+                {formatCurrency(monthlyExpensesTotal)}
+              </span>
+            </div>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-rose-600 transition">
+              Expenses Ledger
+            </h4>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Rent, bills, restocking & operations
+            </p>
+          </div>
+
+          {/* Suppliers Card */}
+          <div
+            onClick={() => onNavigate('suppliers')}
+            className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-teal-50/50 dark:hover:bg-teal-950/30 transition cursor-pointer group"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="h-8 w-8 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-600 flex items-center justify-center">
+                <Truck className="h-4 w-4" />
+              </div>
+              <span className="text-[10px] font-bold text-teal-700 dark:text-teal-300">
+                Supply Chain
+              </span>
+            </div>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-teal-600 transition">
+              Suppliers Directory
+            </h4>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Wholesalers, payment terms & products
+            </p>
+          </div>
+
+          {/* Stock Adjustments Card */}
+          <div
+            onClick={() => onNavigate('stock-adjustments')}
+            className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-amber-50/50 dark:hover:bg-amber-950/30 transition cursor-pointer group"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="h-8 w-8 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 flex items-center justify-center">
+                <SlidersHorizontal className="h-4 w-4" />
+              </div>
+              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300">
+                Audit Trail
+              </span>
+            </div>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-amber-600 transition">
+              Stock Adjustments
+            </h4>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Damaged goods, theft & shrinkage audits
+            </p>
+          </div>
+
+          {/* Notes & Journal Card */}
+          <div
+            onClick={() => onNavigate('notes')}
+            className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-purple-50/50 dark:hover:bg-purple-950/30 transition cursor-pointer group"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="h-8 w-8 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 flex items-center justify-center">
+                <BookOpen className="h-4 w-4" />
+              </div>
+              <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300">
+                Journal
+              </span>
+            </div>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-purple-600 transition">
+              Business Notes
+            </h4>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Daily logs, ideas & priority to-dos
+            </p>
+          </div>
+
+          {/* Documents & Receipts Studio */}
+          <div
+            onClick={() => onNavigate('documents')}
+            className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 transition cursor-pointer group"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="h-8 w-8 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 flex items-center justify-center">
+                <Receipt className="h-4 w-4" />
+              </div>
+              <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300">
+                Studio
+              </span>
+            </div>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition">
+              Receipts & Documents
+            </h4>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Custom headers, footers & delivery notes
+            </p>
+          </div>
+
+          {/* Backup & Data Sovereignty */}
+          <div
+            onClick={() => onNavigate('backup')}
+            className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30 transition cursor-pointer group"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="h-8 w-8 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 flex items-center justify-center">
+                <Database className="h-4 w-4" />
+              </div>
+              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
+                JSON & CSV
+              </span>
+            </div>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition">
+              Data Backup & Export
+            </h4>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Excel spreadsheets & full snapshot restore
+            </p>
+          </div>
         </div>
       </div>
 

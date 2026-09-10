@@ -13,6 +13,14 @@ import {
   X,
   Store,
   ScanLine,
+  Calendar,
+  Truck,
+  TrendingDown,
+  SlidersHorizontal,
+  BookOpen,
+  Receipt,
+  Trash2,
+  Database,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -198,15 +206,15 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ currentView, o
           </button>
 
           <button
-            onClick={() => onNavigate('customers')}
+            onClick={() => onNavigate('quotations')}
             className={`flex flex-col items-center justify-center py-1.5 rounded-xl transition ${
-              currentView === 'customers'
+              currentView === 'quotations'
                 ? 'text-blue-600 dark:text-blue-400 font-bold'
                 : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
             }`}
           >
-            <Users className="h-5 w-5" />
-            <span className="text-[10px] mt-0.5">Clients</span>
+            <FileText className="h-5 w-5" />
+            <span className="text-[10px] mt-0.5">Quotes</span>
           </button>
 
           <button
@@ -222,9 +230,9 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ currentView, o
       {/* User More Navigation Sheet */}
       {showMoreMenu && (
         <div className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-200">
-          <div className="w-full bg-white dark:bg-slate-900 rounded-t-3xl p-5 border-t border-slate-200 dark:border-slate-800 space-y-3">
+          <div className="w-full bg-white dark:bg-slate-900 rounded-t-3xl p-5 border-t border-slate-200 dark:border-slate-800 space-y-3 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Business Management</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">All Business Modules</p>
               <button
                 onClick={() => setShowMoreMenu(false)}
                 className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -235,50 +243,116 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ currentView, o
 
             <div className="grid grid-cols-2 gap-2.5">
               <button
-                onClick={() => { onNavigate('marketplace'); setShowMoreMenu(false); }}
-                className="flex items-center gap-3 p-3 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-xs font-bold text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900"
+                onClick={() => { onNavigate('calendar'); setShowMoreMenu(false); }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-800 dark:text-slate-200"
               >
-                <Store className="h-4 w-4 text-blue-600" />
-                Community Market
-              </button>
-              <button
-                onClick={() => { onNavigate('quick-scan'); setShowMoreMenu(false); }}
-                className="flex items-center gap-3 p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-xs font-bold text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900"
-              >
-                <ScanLine className="h-4 w-4 text-indigo-600" />
-                Quick Barcode Scan
-              </button>
-              <button
-                onClick={() => { onNavigate('invoices'); setShowMoreMenu(false); }}
-                className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-800 dark:text-slate-200"
-              >
-                <FileText className="h-4 w-4 text-cyan-600" />
-                Invoices & Receipts
-              </button>
-              <button
-                onClick={() => { onNavigate('reports'); setShowMoreMenu(false); }}
-                className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-800 dark:text-slate-200"
-              >
-                <BarChart3 className="h-4 w-4 text-indigo-600" />
-                Financial Reports
-              </button>
-              <button
-                onClick={() => { onNavigate('profile'); setShowMoreMenu(false); }}
-                className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-800 dark:text-slate-200"
-              >
-                <Building2 className="h-4 w-4 text-slate-600" />
-                Business Settings
+                <Calendar className="h-4 w-4 text-blue-600" />
+                Calendar
               </button>
 
-              {isAdmin && (
-                <button
-                  onClick={() => { onNavigate('admin-dashboard'); setShowMoreMenu(false); }}
-                  className="flex items-center gap-3 p-3 rounded-2xl bg-purple-50 dark:bg-purple-950/50 text-xs font-semibold text-purple-700 dark:text-purple-300"
-                >
-                  <Shield className="h-4 w-4" />
-                  Admin Panel
-                </button>
-              )}
+              <button
+                onClick={() => { onNavigate('expenses'); setShowMoreMenu(false); }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-800 dark:text-slate-200"
+              >
+                <TrendingDown className="h-4 w-4 text-rose-600" />
+                Expenses Log
+              </button>
+
+              <button
+                onClick={() => { onNavigate('suppliers'); setShowMoreMenu(false); }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-800 dark:text-slate-200"
+              >
+                <Truck className="h-4 w-4 text-teal-600" />
+                Suppliers
+              </button>
+
+              <button
+                onClick={() => { onNavigate('stock-adjustments'); setShowMoreMenu(false); }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-800 dark:text-slate-200"
+              >
+                <SlidersHorizontal className="h-4 w-4 text-amber-600" />
+                Stock Adjustments
+              </button>
+
+              <button
+                onClick={() => { onNavigate('notes'); setShowMoreMenu(false); }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-800 dark:text-slate-200"
+              >
+                <BookOpen className="h-4 w-4 text-purple-600" />
+                Notes & Journal
+              </button>
+
+              <button
+                onClick={() => { onNavigate('documents'); setShowMoreMenu(false); }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-800 dark:text-slate-200"
+              >
+                <Receipt className="h-4 w-4 text-blue-600" />
+                Receipts Studio
+              </button>
+
+              <button
+                onClick={() => { onNavigate('customers'); setShowMoreMenu(false); }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-800 dark:text-slate-200"
+              >
+                <Users className="h-4 w-4 text-purple-600" />
+                Customers
+              </button>
+
+              <button
+                onClick={() => { onNavigate('invoices'); setShowMoreMenu(false); }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-800 dark:text-slate-200"
+              >
+                <FileText className="h-4 w-4 text-cyan-600" />
+                Invoices
+              </button>
+
+              <button
+                onClick={() => { onNavigate('reports'); setShowMoreMenu(false); }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-800 dark:text-slate-200"
+              >
+                <BarChart3 className="h-4 w-4 text-indigo-600" />
+                Analytics
+              </button>
+
+              <button
+                onClick={() => { onNavigate('marketplace'); setShowMoreMenu(false); }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-xs font-bold text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900"
+              >
+                <Store className="h-4 w-4 text-blue-600" />
+                Marketplace
+              </button>
+
+              <button
+                onClick={() => { onNavigate('quick-scan'); setShowMoreMenu(false); }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-xs font-bold text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900"
+              >
+                <ScanLine className="h-4 w-4 text-indigo-600" />
+                Barcode Scan
+              </button>
+
+              <button
+                onClick={() => { onNavigate('backup'); setShowMoreMenu(false); }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-800 dark:text-slate-200"
+              >
+                <Database className="h-4 w-4 text-blue-500" />
+                Backup & Export
+              </button>
+
+              <button
+                onClick={() => { onNavigate('recycle-bin'); setShowMoreMenu(false); }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-800 dark:text-slate-200"
+              >
+                <Trash2 className="h-4 w-4 text-rose-500" />
+                Recycle Bin
+              </button>
+
+              <button
+                onClick={() => { onNavigate('profile'); setShowMoreMenu(false); }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-800 dark:text-slate-200"
+              >
+                <Building2 className="h-4 w-4 text-slate-600" />
+                Settings
+              </button>
             </div>
 
             <div className="pt-3 border-t border-slate-100 dark:border-slate-800">

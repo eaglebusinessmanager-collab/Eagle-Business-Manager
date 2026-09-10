@@ -3,7 +3,12 @@ import {
   AppSetting,
   AuditLog,
   Business,
+  BusinessDocument,
+  BusinessNote,
+  CalendarEvent,
   Customer,
+  DocumentPrefixConfig,
+  Expense,
   FavouriteItem,
   InAppNotification,
   InventoryMovement,
@@ -14,9 +19,15 @@ import {
   PlatformStats,
   Product,
   ProductReport,
+  Quotation,
+  ReceiptCustomizationConfig,
+  RecycleBinItem,
   Sale,
+  StockAdjustment,
+  Supplier,
   UserProfile,
 } from '../types';
+import { offlineSync } from './offlineSync';
 import {
   db,
   isFirebaseConfigured,
@@ -507,6 +518,225 @@ const INITIAL_REVIEWS: MarketplaceReview[] = [
     createdAt: '2025-01-18T11:40:00Z',
   },
 ];
+
+const INITIAL_SUPPLIERS: Supplier[] = [
+  {
+    id: 'supp-001',
+    businessId: 'biz-001',
+    name: 'East African Solar Supplies Ltd',
+    phone: '+256 702 334 455',
+    email: 'orders@easolar.co.ug',
+    address: '6th Street Industrial Area, Kampala',
+    contactPerson: 'Dennis Okello',
+    category: 'Solar Equipment',
+    notes: 'Main distributor for tier-1 solar panels and pure sine wave inverters.',
+    createdAt: '2025-01-10T10:00:00Z',
+    updatedAt: '2025-01-10T10:00:00Z',
+  },
+  {
+    id: 'supp-002',
+    businessId: 'biz-001',
+    name: 'Kampala Tech & Electronics Importers',
+    phone: '+256 782 556 677',
+    email: 'sales@kampalatech.ug',
+    address: 'Nasser Road Commercial Plaza, Level 1',
+    contactPerson: 'Anita Birungi',
+    category: 'Consumer Electronics',
+    notes: 'Direct importer of Android 4K LED TVs and audio accessories.',
+    createdAt: '2025-01-12T11:00:00Z',
+    updatedAt: '2025-01-12T11:00:00Z',
+  },
+];
+
+const INITIAL_EXPENSES: Expense[] = [
+  {
+    id: 'exp-001',
+    businessId: 'biz-001',
+    title: 'Plot 45 Kampala Road Showroom Rent (Monthly)',
+    amount: 1200000,
+    category: 'rent',
+    date: '2025-01-05',
+    paymentMethod: 'bank_transfer',
+    notes: 'Paid via Stanbic Bank for Shop 12.',
+    createdAt: '2025-01-05T12:00:00Z',
+    updatedAt: '2025-01-05T12:00:00Z',
+  },
+  {
+    id: 'exp-002',
+    businessId: 'biz-001',
+    title: 'Umeme Commercial Electricity Tokens',
+    amount: 180000,
+    category: 'utilities',
+    date: '2025-01-14',
+    paymentMethod: 'mobile_money',
+    notes: 'Prepaid Yaka tokens for display TV lighting.',
+    createdAt: '2025-01-14T09:30:00Z',
+    updatedAt: '2025-01-14T09:30:00Z',
+  },
+  {
+    id: 'exp-003',
+    businessId: 'biz-001',
+    title: 'Solar Inverter Cargo Transport from Mombasa',
+    amount: 350000,
+    category: 'transport',
+    date: '2025-01-16',
+    paymentMethod: 'cash',
+    notes: 'Offloading and delivery logistics.',
+    createdAt: '2025-01-16T14:00:00Z',
+    updatedAt: '2025-01-16T14:00:00Z',
+  },
+];
+
+const INITIAL_QUOTATIONS: Quotation[] = [
+  {
+    id: 'quo-001',
+    businessId: 'biz-001',
+    quotationNumber: 'QUO-000001',
+    customerId: 'cust-001',
+    customerName: 'Dr. Joseph Musoke',
+    customerPhone: '+256 701 112 233',
+    customerAddress: 'Kololo Summit View, Kampala',
+    items: [
+      {
+        id: 'qi-001',
+        productId: 'prod-002',
+        productName: 'Pure Sine Wave Solar Inverter 2.5kVA',
+        sku: 'SL-INV-2500',
+        unitPrice: 1850000,
+        quantity: 2,
+        subtotal: 3700000,
+      },
+      {
+        id: 'qi-002',
+        productId: 'prod-006',
+        productName: 'Monocrystalline Solar Panel 350W',
+        sku: 'SL-PNL-0350',
+        unitPrice: 395000,
+        quantity: 4,
+        subtotal: 1580000,
+      },
+    ],
+    subtotal: 5280000,
+    discount: 180000,
+    total: 5100000,
+    validityDate: '2026-10-31',
+    status: 'sent',
+    notes: 'Includes full manufacturer warranty, heavy duty DC cables, and certified installation.',
+    createdAt: '2025-01-15T10:00:00Z',
+    updatedAt: '2025-01-15T10:00:00Z',
+  },
+];
+
+const INITIAL_CALENDAR_EVENTS: CalendarEvent[] = [
+  {
+    id: 'evt-001',
+    businessId: 'biz-001',
+    title: 'Solar Backup Site Survey — Dr. Musoke Residence',
+    description: 'Assess rooftop angle and battery bank location for 2.5kVA hybrid installation.',
+    startDate: new Date(Date.now() + 86400000).toISOString(),
+    endDate: new Date(Date.now() + 86400000 + 7200000).toISOString(),
+    allDay: false,
+    type: 'appointment',
+    status: 'pending',
+    customerId: 'cust-001',
+    customerName: 'Dr. Joseph Musoke',
+    reminderMinutes: 60,
+    color: '#3b82f6',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'evt-002',
+    businessId: 'biz-001',
+    title: 'Supplier Restock Delivery (East African Solar)',
+    description: 'Receiving 10 units of 350W solar panels at main warehouse.',
+    startDate: new Date(Date.now() + 172800000).toISOString(),
+    endDate: new Date(Date.now() + 172800000 + 3600000).toISOString(),
+    allDay: false,
+    type: 'delivery',
+    status: 'pending',
+    reminderMinutes: 120,
+    color: '#10b981',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'evt-003',
+    businessId: 'biz-001',
+    title: 'Wholesale Invoice Follow-up: Florence Nakafeero',
+    description: 'Verify receipt of second batch of LED TV remotes and balance settlement.',
+    startDate: new Date(Date.now() + 259200000).toISOString(),
+    endDate: new Date(Date.now() + 259200000 + 1800000).toISOString(),
+    allDay: false,
+    type: 'payment_reminder',
+    status: 'pending',
+    customerId: 'cust-002',
+    customerName: 'Florence Nakafeero',
+    reminderMinutes: 30,
+    color: '#f59e0b',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+const INITIAL_NOTES: BusinessNote[] = [
+  {
+    id: 'note-001',
+    businessId: 'biz-001',
+    title: 'Q1 Supplier Price Negotiations & Solar Battery Terms',
+    content: 'Discussed 8% bulk discount with Dennis Okello at East African Solar for deep cycle gel batteries if we order 25 units upfront. Terms require 50% deposit with 30-day settlement on remaining balance.',
+    category: 'supplier',
+    isPinned: true,
+    tags: ['solar', 'batteries', 'supplier'],
+    relatedSupplierId: 'supp-001',
+    createdAt: '2025-01-14T11:00:00Z',
+    updatedAt: '2025-01-14T11:00:00Z',
+  },
+  {
+    id: 'note-002',
+    businessId: 'biz-001',
+    title: 'Showroom Opening Procedures & Inverter Display Check',
+    content: 'Ensure all 4K demonstration screens are tuned to high-definition loops by 8:30 AM. Check that the solar battery inverter backup indicator is green and test emergency cutoff switch every Monday.',
+    category: 'daily',
+    isPinned: true,
+    tags: ['operations', 'showroom'],
+    createdAt: '2025-01-15T08:00:00Z',
+    updatedAt: '2025-01-15T08:00:00Z',
+  },
+  {
+    id: 'note-003',
+    businessId: 'biz-001',
+    title: 'Dr. Joseph Musoke — Customer Preference Notes',
+    content: 'Prefers communication via WhatsApp. Requests weekend site surveys when he is off clinic duty. Always wants official receipts printed with Eagle Styles stamp.',
+    category: 'customer',
+    isPinned: false,
+    tags: ['vip', 'customer'],
+    relatedCustomerId: 'cust-001',
+    relatedCustomerName: 'Dr. Joseph Musoke',
+    createdAt: '2025-01-16T10:00:00Z',
+    updatedAt: '2025-01-16T10:00:00Z',
+  },
+];
+
+const INITIAL_STOCK_ADJUSTMENTS: StockAdjustment[] = [
+  {
+    id: 'adj-001',
+    businessId: 'biz-001',
+    productId: 'prod-003',
+    productName: 'Rechargeable Solar Flood Light 200W',
+    sku: 'SL-FLD-0200',
+    previousQuantity: 9,
+    adjustmentAmount: -1,
+    newQuantity: 8,
+    reason: 'damaged',
+    notes: 'Glass panel cracked during showroom re-arrangement. Decommissioned for spare parts.',
+    userName: 'Eagle Styles (Tusubira Benjamin)',
+    userId: 'user-002',
+    createdAt: '2025-01-13T16:00:00Z',
+  },
+];
+
+const INITIAL_RECYCLE_BIN: RecycleBinItem[] = [];
 
 // Local Storage Helper with Type Safety
 function getStored<T>(key: string, fallback: T): T {
@@ -1729,5 +1959,900 @@ export const dbService = {
 
   async lookupProductByBarcodeOrSku(businessId: string, code: string): Promise<Product | null> {
     return this.getProductByBarcode(code, businessId);
+  },
+
+  // ==========================================
+  // 1. SUPPLIERS MODULE
+  // ==========================================
+  async getSuppliers(businessId: string): Promise<Supplier[]> {
+    const list = getStored<Supplier[]>('suppliers', INITIAL_SUPPLIERS);
+    return list.filter((s) => s.businessId === businessId);
+  },
+
+  async createSupplier(supplier: Supplier): Promise<Supplier> {
+    const list = getStored<Supplier[]>('suppliers', INITIAL_SUPPLIERS);
+    list.unshift(supplier);
+    setStored('suppliers', list);
+
+    offlineSync.enqueue({
+      collection: 'suppliers',
+      action: 'create',
+      data: supplier as unknown as Record<string, unknown>,
+    });
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await setDoc(doc(db, 'suppliers', supplier.id), supplier);
+      } catch (e) {
+        console.warn('Firebase createSupplier fallback to local:', e);
+      }
+    }
+    return supplier;
+  },
+
+  async updateSupplier(id: string, updates: Partial<Supplier>): Promise<Supplier | null> {
+    const list = getStored<Supplier[]>('suppliers', INITIAL_SUPPLIERS);
+    const idx = list.findIndex((s) => s.id === id);
+    if (idx === -1) return null;
+    list[idx] = { ...list[idx], ...updates, updatedAt: new Date().toISOString() };
+    setStored('suppliers', list);
+
+    offlineSync.enqueue({
+      collection: 'suppliers',
+      action: 'update',
+      data: list[idx] as unknown as Record<string, unknown>,
+    });
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await updateDoc(doc(db, 'suppliers', id), updates);
+      } catch (e) {
+        console.warn('Firebase updateSupplier fallback:', e);
+      }
+    }
+    return list[idx];
+  },
+
+  async deleteSupplier(id: string, deletedBy: { id: string; name: string }): Promise<boolean> {
+    const list = getStored<Supplier[]>('suppliers', INITIAL_SUPPLIERS);
+    const item = list.find((s) => s.id === id);
+    if (!item) return false;
+
+    // Move to recycle bin
+    await this.moveToRecycleBin({
+      businessId: item.businessId,
+      itemType: 'supplier',
+      originalId: item.id,
+      itemName: item.name,
+      itemData: item as unknown as Record<string, unknown>,
+      deletedBy: deletedBy.id,
+      deletedByName: deletedBy.name,
+    });
+
+    const filtered = list.filter((s) => s.id !== id);
+    setStored('suppliers', filtered);
+
+    offlineSync.enqueue({
+      collection: 'suppliers',
+      action: 'delete',
+      data: { id },
+    });
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await deleteDoc(doc(db, 'suppliers', id));
+      } catch (e) {
+        console.warn('Firebase deleteSupplier fallback:', e);
+      }
+    }
+    return true;
+  },
+
+  // ==========================================
+  // 2. EXPENSES MODULE
+  // ==========================================
+  async getExpenses(businessId: string): Promise<Expense[]> {
+    const list = getStored<Expense[]>('expenses', INITIAL_EXPENSES);
+    return list.filter((e) => e.businessId === businessId);
+  },
+
+  async createExpense(expense: Expense): Promise<Expense> {
+    const list = getStored<Expense[]>('expenses', INITIAL_EXPENSES);
+    list.unshift(expense);
+    setStored('expenses', list);
+
+    offlineSync.enqueue({
+      collection: 'expenses',
+      action: 'create',
+      data: expense as unknown as Record<string, unknown>,
+    });
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await setDoc(doc(db, 'expenses', expense.id), expense);
+      } catch (e) {
+        console.warn('Firebase createExpense fallback:', e);
+      }
+    }
+    return expense;
+  },
+
+  async updateExpense(id: string, updates: Partial<Expense>): Promise<Expense | null> {
+    const list = getStored<Expense[]>('expenses', INITIAL_EXPENSES);
+    const idx = list.findIndex((e) => e.id === id);
+    if (idx === -1) return null;
+    list[idx] = { ...list[idx], ...updates, updatedAt: new Date().toISOString() };
+    setStored('expenses', list);
+
+    offlineSync.enqueue({
+      collection: 'expenses',
+      action: 'update',
+      data: list[idx] as unknown as Record<string, unknown>,
+    });
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await updateDoc(doc(db, 'expenses', id), updates);
+      } catch (e) {
+        console.warn('Firebase updateExpense fallback:', e);
+      }
+    }
+    return list[idx];
+  },
+
+  async deleteExpense(id: string, deletedBy: { id: string; name: string }): Promise<boolean> {
+    const list = getStored<Expense[]>('expenses', INITIAL_EXPENSES);
+    const item = list.find((e) => e.id === id);
+    if (!item) return false;
+
+    await this.moveToRecycleBin({
+      businessId: item.businessId,
+      itemType: 'expense',
+      originalId: item.id,
+      itemName: item.title,
+      itemData: item as unknown as Record<string, unknown>,
+      deletedBy: deletedBy.id,
+      deletedByName: deletedBy.name,
+    });
+
+    const filtered = list.filter((e) => e.id !== id);
+    setStored('expenses', filtered);
+
+    offlineSync.enqueue({
+      collection: 'expenses',
+      action: 'delete',
+      data: { id },
+    });
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await deleteDoc(doc(db, 'expenses', id));
+      } catch (e) {
+        console.warn('Firebase deleteExpense fallback:', e);
+      }
+    }
+    return true;
+  },
+
+  // ==========================================
+  // 3. QUOTATIONS MODULE
+  // ==========================================
+  async getQuotations(businessId: string): Promise<Quotation[]> {
+    const list = getStored<Quotation[]>('quotations', INITIAL_QUOTATIONS);
+    return list.filter((q) => q.businessId === businessId);
+  },
+
+  async createQuotation(quotation: Quotation): Promise<Quotation> {
+    const list = getStored<Quotation[]>('quotations', INITIAL_QUOTATIONS);
+    list.unshift(quotation);
+    setStored('quotations', list);
+
+    offlineSync.enqueue({
+      collection: 'quotations',
+      action: 'create',
+      data: quotation as unknown as Record<string, unknown>,
+    });
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await setDoc(doc(db, 'quotations', quotation.id), quotation);
+      } catch (e) {
+        console.warn('Firebase createQuotation fallback:', e);
+      }
+    }
+    return quotation;
+  },
+
+  async updateQuotation(id: string, updates: Partial<Quotation>): Promise<Quotation | null> {
+    const list = getStored<Quotation[]>('quotations', INITIAL_QUOTATIONS);
+    const idx = list.findIndex((q) => q.id === id);
+    if (idx === -1) return null;
+    list[idx] = { ...list[idx], ...updates, updatedAt: new Date().toISOString() };
+    setStored('quotations', list);
+
+    offlineSync.enqueue({
+      collection: 'quotations',
+      action: 'update',
+      data: list[idx] as unknown as Record<string, unknown>,
+    });
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await updateDoc(doc(db, 'quotations', id), updates);
+      } catch (e) {
+        console.warn('Firebase updateQuotation fallback:', e);
+      }
+    }
+    return list[idx];
+  },
+
+  async deleteQuotation(id: string, deletedBy: { id: string; name: string }): Promise<boolean> {
+    const list = getStored<Quotation[]>('quotations', INITIAL_QUOTATIONS);
+    const item = list.find((q) => q.id === id);
+    if (!item) return false;
+
+    await this.moveToRecycleBin({
+      businessId: item.businessId,
+      itemType: 'quotation',
+      originalId: item.id,
+      itemName: `${item.quotationNumber} - ${item.customerName}`,
+      itemData: item as unknown as Record<string, unknown>,
+      deletedBy: deletedBy.id,
+      deletedByName: deletedBy.name,
+    });
+
+    const filtered = list.filter((q) => q.id !== id);
+    setStored('quotations', filtered);
+
+    offlineSync.enqueue({
+      collection: 'quotations',
+      action: 'delete',
+      data: { id },
+    });
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await deleteDoc(doc(db, 'quotations', id));
+      } catch (e) {
+        console.warn('Firebase deleteQuotation fallback:', e);
+      }
+    }
+    return true;
+  },
+
+  async convertQuotationToInvoice(quotationId: string, userId: string): Promise<Invoice> {
+    const quotations = getStored<Quotation[]>('quotations', INITIAL_QUOTATIONS);
+    const quotation = quotations.find((q) => q.id === quotationId);
+    if (!quotation) {
+      throw new Error('Quotation not found');
+    }
+
+    const nextInvoiceNumber = await this.getNextDocumentNumber(quotation.businessId, 'invoice');
+    const invoiceId = `inv-${Date.now()}`;
+
+    const newInvoice: Invoice = {
+      id: invoiceId,
+      businessId: quotation.businessId,
+      invoiceNumber: nextInvoiceNumber,
+      customerId: quotation.customerId,
+      customerName: quotation.customerName,
+      customerPhone: quotation.customerPhone,
+      customerAddress: quotation.customerAddress,
+      items: quotation.items,
+      subtotal: quotation.subtotal,
+      discount: quotation.discount,
+      total: quotation.total,
+      paymentStatus: 'pending',
+      status: 'pending',
+      dueDate: quotation.validityDate || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      notes: `Converted from Quotation ${quotation.quotationNumber}. ${quotation.notes || ''}`,
+    };
+
+    // Save invoice
+    await this.createInvoice(newInvoice);
+
+    // Update quotation status
+    await this.updateQuotation(quotationId, {
+      status: 'invoiced',
+      convertedInvoiceId: invoiceId,
+    });
+
+    return newInvoice;
+  },
+
+  // ==========================================
+  // 4. BUSINESS CALENDAR MODULE
+  // ==========================================
+  async getCalendarEvents(businessId: string): Promise<CalendarEvent[]> {
+    const list = getStored<CalendarEvent[]>('calendar_events', INITIAL_CALENDAR_EVENTS);
+    return list.filter((e) => e.businessId === businessId);
+  },
+
+  async createCalendarEvent(event: CalendarEvent): Promise<CalendarEvent> {
+    const list = getStored<CalendarEvent[]>('calendar_events', INITIAL_CALENDAR_EVENTS);
+    list.unshift(event);
+    setStored('calendar_events', list);
+
+    offlineSync.enqueue({
+      collection: 'calendar_events',
+      action: 'create',
+      data: event as unknown as Record<string, unknown>,
+    });
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await setDoc(doc(db, 'calendar_events', event.id), event);
+      } catch (e) {
+        console.warn('Firebase createCalendarEvent fallback:', e);
+      }
+    }
+    return event;
+  },
+
+  async updateCalendarEvent(id: string, updates: Partial<CalendarEvent>): Promise<CalendarEvent | null> {
+    const list = getStored<CalendarEvent[]>('calendar_events', INITIAL_CALENDAR_EVENTS);
+    const idx = list.findIndex((e) => e.id === id);
+    if (idx === -1) return null;
+    list[idx] = { ...list[idx], ...updates, updatedAt: new Date().toISOString() };
+    setStored('calendar_events', list);
+
+    offlineSync.enqueue({
+      collection: 'calendar_events',
+      action: 'update',
+      data: list[idx] as unknown as Record<string, unknown>,
+    });
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await updateDoc(doc(db, 'calendar_events', id), updates);
+      } catch (e) {
+        console.warn('Firebase updateCalendarEvent fallback:', e);
+      }
+    }
+    return list[idx];
+  },
+
+  async deleteCalendarEvent(id: string): Promise<boolean> {
+    const list = getStored<CalendarEvent[]>('calendar_events', INITIAL_CALENDAR_EVENTS);
+    const filtered = list.filter((e) => e.id !== id);
+    setStored('calendar_events', filtered);
+
+    offlineSync.enqueue({
+      collection: 'calendar_events',
+      action: 'delete',
+      data: { id },
+    });
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await deleteDoc(doc(db, 'calendar_events', id));
+      } catch (e) {
+        console.warn('Firebase deleteCalendarEvent fallback:', e);
+      }
+    }
+    return true;
+  },
+
+  // ==========================================
+  // 5. NOTES & BUSINESS JOURNAL MODULE
+  // ==========================================
+  async getNotes(businessId: string): Promise<BusinessNote[]> {
+    const list = getStored<BusinessNote[]>('notes', INITIAL_NOTES);
+    return list.filter((n) => n.businessId === businessId);
+  },
+
+  async createNote(note: BusinessNote): Promise<BusinessNote> {
+    const list = getStored<BusinessNote[]>('notes', INITIAL_NOTES);
+    list.unshift(note);
+    setStored('notes', list);
+
+    offlineSync.enqueue({
+      collection: 'notes',
+      action: 'create',
+      data: note as unknown as Record<string, unknown>,
+    });
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await setDoc(doc(db, 'notes', note.id), note);
+      } catch (e) {
+        console.warn('Firebase createNote fallback:', e);
+      }
+    }
+    return note;
+  },
+
+  async updateNote(id: string, updates: Partial<BusinessNote>): Promise<BusinessNote | null> {
+    const list = getStored<BusinessNote[]>('notes', INITIAL_NOTES);
+    const idx = list.findIndex((n) => n.id === id);
+    if (idx === -1) return null;
+    list[idx] = { ...list[idx], ...updates, updatedAt: new Date().toISOString() };
+    setStored('notes', list);
+
+    offlineSync.enqueue({
+      collection: 'notes',
+      action: 'update',
+      data: list[idx] as unknown as Record<string, unknown>,
+    });
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await updateDoc(doc(db, 'notes', id), updates);
+      } catch (e) {
+        console.warn('Firebase updateNote fallback:', e);
+      }
+    }
+    return list[idx];
+  },
+
+  async deleteNote(id: string, deletedBy: { id: string; name: string }): Promise<boolean> {
+    const list = getStored<BusinessNote[]>('notes', INITIAL_NOTES);
+    const item = list.find((n) => n.id === id);
+    if (!item) return false;
+
+    await this.moveToRecycleBin({
+      businessId: item.businessId,
+      itemType: 'note',
+      originalId: item.id,
+      itemName: item.title,
+      itemData: item as unknown as Record<string, unknown>,
+      deletedBy: deletedBy.id,
+      deletedByName: deletedBy.name,
+    });
+
+    const filtered = list.filter((n) => n.id !== id);
+    setStored('notes', filtered);
+
+    offlineSync.enqueue({
+      collection: 'notes',
+      action: 'delete',
+      data: { id },
+    });
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await deleteDoc(doc(db, 'notes', id));
+      } catch (e) {
+        console.warn('Firebase deleteNote fallback:', e);
+      }
+    }
+    return true;
+  },
+
+  // ==========================================
+  // 6. STOCK ADJUSTMENTS MODULE
+  // ==========================================
+  async getStockAdjustments(businessId: string): Promise<StockAdjustment[]> {
+    const list = getStored<StockAdjustment[]>('stock_adjustments', INITIAL_STOCK_ADJUSTMENTS);
+    return list.filter((a) => a.businessId === businessId);
+  },
+
+  async recordStockAdjustment(
+    adjustmentData: Omit<StockAdjustment, 'id' | 'createdAt'>
+  ): Promise<StockAdjustment> {
+    const id = `adj-${Date.now()}`;
+    const adjustment: StockAdjustment = {
+      ...adjustmentData,
+      id,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Save adjustment log
+    const adjustments = getStored<StockAdjustment[]>('stock_adjustments', INITIAL_STOCK_ADJUSTMENTS);
+    adjustments.unshift(adjustment);
+    setStored('stock_adjustments', adjustments);
+
+    // Update the product's currentStock
+    const products = getStored<Product[]>('products', INITIAL_PRODUCTS);
+    const pIdx = products.findIndex((p) => p.id === adjustment.productId);
+    if (pIdx !== -1) {
+      products[pIdx].currentStock = adjustment.newQuantity;
+      products[pIdx].updatedAt = new Date().toISOString();
+      setStored('products', products);
+
+      // Record inventory movement
+      await this.recordMovement({
+        id: `mov-${Date.now()}`,
+        businessId: adjustment.businessId,
+        productId: adjustment.productId,
+        productName: adjustment.productName,
+        type: 'adjustment',
+        quantityChange: adjustment.adjustmentAmount,
+        previousStock: adjustment.previousQuantity,
+        newStock: adjustment.newQuantity,
+        reason: `Stock Adjustment (${adjustment.reason}): ${adjustment.notes || 'Manual correction'}`,
+        createdAt: new Date().toISOString(),
+        createdBy: adjustment.userId,
+      });
+
+      if (isFirebaseConfigured() && db) {
+        try {
+          await updateDoc(doc(db, 'products', adjustment.productId), {
+            currentStock: adjustment.newQuantity,
+            updatedAt: new Date().toISOString(),
+          });
+        } catch (e) {
+          console.warn('Firebase product stock sync warning:', e);
+        }
+      }
+    }
+
+    offlineSync.enqueue({
+      collection: 'stock_adjustments',
+      action: 'create',
+      data: adjustment as unknown as Record<string, unknown>,
+    });
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await setDoc(doc(db, 'stock_adjustments', id), adjustment);
+      } catch (e) {
+        console.warn('Firebase stock adjustment fallback:', e);
+      }
+    }
+
+    return adjustment;
+  },
+
+  // ==========================================
+  // 7. AUTOMATIC DOCUMENT NUMBERING
+  // ==========================================
+  async getNextDocumentNumber(
+    businessId: string,
+    type: 'invoice' | 'receipt' | 'quotation' | 'estimate' | 'purchase_order' | 'delivery_note'
+  ): Promise<string> {
+    const config = await this.getReceiptConfig(businessId);
+    const prefixes = config.prefixes || {
+      invoicePrefix: 'INV-',
+      receiptPrefix: 'REC-',
+      quotationPrefix: 'QUO-',
+      estimatePrefix: 'EST-',
+      purchaseOrderPrefix: 'PO-',
+      deliveryNotePrefix: 'DN-',
+    };
+
+    let prefix = 'DOC-';
+    let currentMaxNumber = 0;
+
+    if (type === 'invoice') {
+      prefix = prefixes.invoicePrefix || 'INV-';
+      const invoices = getStored<Invoice[]>('invoices', []);
+      invoices.forEach((inv) => {
+        if (inv.invoiceNumber && inv.invoiceNumber.startsWith(prefix)) {
+          const num = parseInt(inv.invoiceNumber.replace(prefix, ''), 10);
+          if (!isNaN(num) && num > currentMaxNumber) currentMaxNumber = num;
+        }
+      });
+    } else if (type === 'receipt') {
+      prefix = prefixes.receiptPrefix || 'REC-';
+      const sales = getStored<Sale[]>('sales', INITIAL_SALES);
+      sales.forEach((s) => {
+        if (s.saleNumber && s.saleNumber.startsWith(prefix)) {
+          const num = parseInt(s.saleNumber.replace(prefix, ''), 10);
+          if (!isNaN(num) && num > currentMaxNumber) currentMaxNumber = num;
+        }
+      });
+    } else if (type === 'quotation') {
+      prefix = prefixes.quotationPrefix || 'QUO-';
+      const quotations = getStored<Quotation[]>('quotations', INITIAL_QUOTATIONS);
+      quotations.forEach((q) => {
+        if (q.quotationNumber && q.quotationNumber.startsWith(prefix)) {
+          const num = parseInt(q.quotationNumber.replace(prefix, ''), 10);
+          if (!isNaN(num) && num > currentMaxNumber) currentMaxNumber = num;
+        }
+      });
+    } else if (type === 'estimate') {
+      prefix = prefixes.estimatePrefix || 'EST-';
+    } else if (type === 'purchase_order') {
+      prefix = prefixes.purchaseOrderPrefix || 'PO-';
+    } else if (type === 'delivery_note') {
+      prefix = prefixes.deliveryNotePrefix || 'DN-';
+    }
+
+    const nextNumber = currentMaxNumber + 1;
+    return `${prefix}${nextNumber.toString().padStart(6, '0')}`;
+  },
+
+  // ==========================================
+  // 8. RECEIPT CUSTOMIZATION & CONFIG
+  // ==========================================
+  async getReceiptConfig(businessId: string): Promise<ReceiptCustomizationConfig> {
+    const key = `receipt_config_${businessId}`;
+    const biz = (await this.getBusiness(businessId)) || INITIAL_BUSINESSES[0];
+    const fallback: ReceiptCustomizationConfig = {
+      businessName: biz?.name || 'Eagle Styles Store',
+      logoUrl: biz?.logoUrl || '',
+      phone: biz?.phone || '+256 743 566 645',
+      whatsapp: '+256743566645',
+      address: biz?.address || 'Plot 45 Kampala Road, Shop 12, Kampala',
+      email: 'eaglebusinessmanager@gmail.com',
+      receiptFooter: biz?.receiptFooter || 'Goods once sold are not returnable without an official receipt.',
+      thankYouMessage: 'Thank you for choosing us! Powered by Eagle Business Manager.',
+      currency: biz?.currency || 'UGX',
+      layout: 'standard',
+      prefixes: {
+        invoicePrefix: 'INV-',
+        receiptPrefix: 'REC-',
+        quotationPrefix: 'QUO-',
+        estimatePrefix: 'EST-',
+        purchaseOrderPrefix: 'PO-',
+        deliveryNotePrefix: 'DN-',
+      },
+    };
+    return getStored<ReceiptCustomizationConfig>(key, fallback);
+  },
+
+  async saveReceiptConfig(
+    businessId: string,
+    updates: Partial<ReceiptCustomizationConfig>
+  ): Promise<ReceiptCustomizationConfig> {
+    const current = await this.getReceiptConfig(businessId);
+    const updated: ReceiptCustomizationConfig = {
+      ...current,
+      ...updates,
+      prefixes: {
+        ...current.prefixes,
+        ...(updates.prefixes || {}),
+      },
+    };
+    const key = `receipt_config_${businessId}`;
+    setStored(key, updated);
+
+    // Also update business profile fields if modified
+    if (updates.businessName || updates.receiptFooter || updates.phone || updates.address || updates.currency) {
+      await this.updateBusiness(businessId, {
+        ...(updates.businessName && { name: updates.businessName }),
+        ...(updates.receiptFooter && { receiptFooter: updates.receiptFooter }),
+        ...(updates.phone && { phone: updates.phone }),
+        ...(updates.address && { address: updates.address }),
+        ...(updates.currency && { currency: updates.currency }),
+        ...(updates.logoUrl && { logoUrl: updates.logoUrl }),
+      });
+    }
+
+    return updated;
+  },
+
+  // ==========================================
+  // 9. RECYCLE BIN MODULE
+  // ==========================================
+  async getRecycleBinItems(businessId: string): Promise<RecycleBinItem[]> {
+    const list = getStored<RecycleBinItem[]>('recycle_bin', INITIAL_RECYCLE_BIN);
+    return list.filter((item) => item.businessId === businessId);
+  },
+
+  async moveToRecycleBin(itemData: Omit<RecycleBinItem, 'id' | 'deletedAt'>): Promise<RecycleBinItem> {
+    const bin = getStored<RecycleBinItem[]>('recycle_bin', INITIAL_RECYCLE_BIN);
+    const item: RecycleBinItem = {
+      ...itemData,
+      id: `bin-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      deletedAt: new Date().toISOString(),
+    };
+    bin.unshift(item);
+    setStored('recycle_bin', bin);
+    return item;
+  },
+
+  async restoreRecycleBinItem(id: string): Promise<boolean> {
+    const bin = getStored<RecycleBinItem[]>('recycle_bin', INITIAL_RECYCLE_BIN);
+    const item = bin.find((i) => i.id === id);
+    if (!item) return false;
+
+    // Restore to respective collection
+    switch (item.itemType) {
+      case 'product': {
+        const products = getStored<Product[]>('products', INITIAL_PRODUCTS);
+        products.unshift(item.itemData as unknown as Product);
+        setStored('products', products);
+        break;
+      }
+      case 'customer': {
+        const customers = getStored<Customer[]>('customers', INITIAL_CUSTOMERS);
+        customers.unshift(item.itemData as unknown as Customer);
+        setStored('customers', customers);
+        break;
+      }
+      case 'supplier': {
+        const suppliers = getStored<Supplier[]>('suppliers', INITIAL_SUPPLIERS);
+        suppliers.unshift(item.itemData as unknown as Supplier);
+        setStored('suppliers', suppliers);
+        break;
+      }
+      case 'note': {
+        const notes = getStored<BusinessNote[]>('notes', INITIAL_NOTES);
+        notes.unshift(item.itemData as unknown as BusinessNote);
+        setStored('notes', notes);
+        break;
+      }
+      case 'quotation': {
+        const quotations = getStored<Quotation[]>('quotations', INITIAL_QUOTATIONS);
+        quotations.unshift(item.itemData as unknown as Quotation);
+        setStored('quotations', quotations);
+        break;
+      }
+      case 'expense': {
+        const expenses = getStored<Expense[]>('expenses', INITIAL_EXPENSES);
+        expenses.unshift(item.itemData as unknown as Expense);
+        setStored('expenses', expenses);
+        break;
+      }
+    }
+
+    // Remove from bin
+    const filtered = bin.filter((i) => i.id !== id);
+    setStored('recycle_bin', filtered);
+    return true;
+  },
+
+  async permanentDeleteRecycleBinItem(id: string): Promise<boolean> {
+    const bin = getStored<RecycleBinItem[]>('recycle_bin', INITIAL_RECYCLE_BIN);
+    const filtered = bin.filter((i) => i.id !== id);
+    setStored('recycle_bin', filtered);
+    return true;
+  },
+
+  async emptyRecycleBin(businessId: string): Promise<boolean> {
+    const bin = getStored<RecycleBinItem[]>('recycle_bin', INITIAL_RECYCLE_BIN);
+    const filtered = bin.filter((i) => i.businessId !== businessId);
+    setStored('recycle_bin', filtered);
+    return true;
+  },
+
+  // Soft delete for Product
+  async deleteProductWithRecycleBin(
+    productId: string,
+    deletedBy: { id: string; name: string }
+  ): Promise<boolean> {
+    const products = getStored<Product[]>('products', INITIAL_PRODUCTS);
+    const p = products.find((prod) => prod.id === productId);
+    if (!p) return false;
+
+    await this.moveToRecycleBin({
+      businessId: p.businessId,
+      itemType: 'product',
+      originalId: p.id,
+      itemName: `${p.name} (SKU: ${p.sku})`,
+      itemData: p as unknown as Record<string, unknown>,
+      deletedBy: deletedBy.id,
+      deletedByName: deletedBy.name,
+    });
+
+    const filtered = products.filter((prod) => prod.id !== productId);
+    setStored('products', filtered);
+
+    offlineSync.enqueue({
+      collection: 'products',
+      action: 'delete',
+      data: { id: productId },
+    });
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await deleteDoc(doc(db, 'products', productId));
+      } catch (e) {
+        console.warn('Firebase delete product fallback:', e);
+      }
+    }
+    return true;
+  },
+
+  // Soft delete for Customer
+  async deleteCustomerWithRecycleBin(
+    customerId: string,
+    deletedBy: { id: string; name: string }
+  ): Promise<boolean> {
+    const customers = getStored<Customer[]>('customers', INITIAL_CUSTOMERS);
+    const c = customers.find((cust) => cust.id === customerId);
+    if (!c) return false;
+
+    await this.moveToRecycleBin({
+      businessId: c.businessId,
+      itemType: 'customer',
+      originalId: c.id,
+      itemName: `${c.name} (${c.phone})`,
+      itemData: c as unknown as Record<string, unknown>,
+      deletedBy: deletedBy.id,
+      deletedByName: deletedBy.name,
+    });
+
+    const filtered = customers.filter((cust) => cust.id !== customerId);
+    setStored('customers', filtered);
+
+    offlineSync.enqueue({
+      collection: 'customers',
+      action: 'delete',
+      data: { id: customerId },
+    });
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await deleteDoc(doc(db, 'customers', customerId));
+      } catch (e) {
+        console.warn('Firebase delete customer fallback:', e);
+      }
+    }
+    return true;
+  },
+
+  // ==========================================
+  // 10. FAST OFFLINE GLOBAL SEARCH
+  // ==========================================
+  async searchAll(businessId: string, queryText: string) {
+    const term = queryText.trim().toLowerCase();
+    if (!term) {
+      return {
+        products: [],
+        customers: [],
+        suppliers: [],
+        sales: [],
+        invoices: [],
+        quotations: [],
+        expenses: [],
+        notes: [],
+        adjustments: [],
+      };
+    }
+
+    const [products, customers, suppliers, sales, invoices, quotations, expenses, notes, adjustments] =
+      await Promise.all([
+        this.getProducts(businessId),
+        this.getCustomers(businessId),
+        this.getSuppliers(businessId),
+        this.getSales(businessId),
+        this.getInvoices(businessId),
+        this.getQuotations(businessId),
+        this.getExpenses(businessId),
+        this.getNotes(businessId),
+        this.getStockAdjustments(businessId),
+      ]);
+
+    return {
+      products: products.filter(
+        (p) =>
+          p.name.toLowerCase().includes(term) ||
+          p.sku.toLowerCase().includes(term) ||
+          (p.barcode && p.barcode.toLowerCase().includes(term)) ||
+          p.category.toLowerCase().includes(term)
+      ),
+      customers: customers.filter(
+        (c) =>
+          c.name.toLowerCase().includes(term) ||
+          c.phone.toLowerCase().includes(term) ||
+          (c.email && c.email.toLowerCase().includes(term))
+      ),
+      suppliers: suppliers.filter(
+        (s) =>
+          s.name.toLowerCase().includes(term) ||
+          s.phone.toLowerCase().includes(term) ||
+          (s.contactPerson && s.contactPerson.toLowerCase().includes(term))
+      ),
+      sales: sales.filter(
+        (s) =>
+          s.saleNumber.toLowerCase().includes(term) ||
+          (s.customerName && s.customerName.toLowerCase().includes(term)) ||
+          s.items.some((it) => it.productName.toLowerCase().includes(term))
+      ),
+      invoices: invoices.filter(
+        (inv) =>
+          inv.invoiceNumber.toLowerCase().includes(term) ||
+          inv.customerName.toLowerCase().includes(term)
+      ),
+      quotations: quotations.filter(
+        (q) =>
+          q.quotationNumber.toLowerCase().includes(term) ||
+          q.customerName.toLowerCase().includes(term)
+      ),
+      expenses: expenses.filter(
+        (e) => e.title.toLowerCase().includes(term) || e.category.toLowerCase().includes(term)
+      ),
+      notes: notes.filter(
+        (n) => n.title.toLowerCase().includes(term) || n.content.toLowerCase().includes(term)
+      ),
+      adjustments: adjustments.filter(
+        (a) => a.productName.toLowerCase().includes(term) || a.reason.toLowerCase().includes(term)
+      ),
+    };
   },
 };

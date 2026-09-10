@@ -17,6 +17,16 @@ import {
   BarChart3,
   Package,
   ScanLine,
+  Search,
+  Calendar,
+  Truck,
+  TrendingDown,
+  SlidersHorizontal,
+  BookOpen,
+  Receipt,
+  Trash2,
+  Database,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { PWAInstallButton } from './PWAInstallButton';
@@ -24,13 +34,23 @@ import { PWAInstallButton } from './PWAInstallButton';
 interface NavbarProps {
   currentView: string;
   onNavigate: (view: string) => void;
+  onOpenSearch?: () => void;
+  darkMode?: boolean;
+  onToggleDarkMode?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
+export const Navbar: React.FC<NavbarProps> = ({
+  currentView,
+  onNavigate,
+  onOpenSearch,
+  darkMode,
+  onToggleDarkMode,
+}) => {
   const { user, business, logout } = useAuth();
   const [isDark, setIsDark] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [toolsDropdownOpen, setToolsDropdownOpen] = useState(false);
 
   useEffect(() => {
     // Check saved theme preference or system default
@@ -45,6 +65,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
   }, []);
 
   const toggleTheme = () => {
+    if (onToggleDarkMode) {
+      onToggleDarkMode();
+      setIsDark(!darkMode);
+      return;
+    }
     if (isDark) {
       document.documentElement.classList.remove('dark');
       localStorage.setItem('eagle_theme', 'light');
@@ -80,18 +105,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                   {business?.currency || 'UGX'}
                 </span>
               </div>
-              <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate max-w-[140px] sm:max-w-[200px]">
-                {business?.name || 'Business Manager'}
+              <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate max-w-[120px] sm:max-w-[180px]">
+                {business?.name || 'Eagle Business Manager'}
               </p>
             </div>
           </button>
 
           {/* Desktop Navigation Links for User */}
           {!isInAdminView && (
-            <nav className="hidden md:flex items-center gap-1 ml-6 text-xs font-semibold">
+            <nav className="hidden lg:flex items-center gap-1 ml-4 text-xs font-semibold">
               <button
                 onClick={() => onNavigate('dashboard')}
-                className={`px-3 py-1.5 rounded-lg transition ${
+                className={`px-2.5 py-1.5 rounded-lg transition ${
                   currentView === 'dashboard'
                     ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400'
                     : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
@@ -101,7 +126,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
               </button>
               <button
                 onClick={() => onNavigate('products')}
-                className={`px-3 py-1.5 rounded-lg transition ${
+                className={`px-2.5 py-1.5 rounded-lg transition ${
                   currentView === 'products'
                     ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400'
                     : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
@@ -110,30 +135,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                 Products
               </button>
               <button
-                onClick={() => onNavigate('marketplace')}
-                className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
-                  currentView === 'marketplace'
-                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400 font-bold'
-                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
-                }`}
-              >
-                <Store className="h-3.5 w-3.5 text-blue-600" />
-                <span>Marketplace</span>
-              </button>
-              <button
-                onClick={() => onNavigate('quick-scan')}
-                className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
-                  currentView === 'quick-scan'
-                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400 font-bold'
-                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
-                }`}
-              >
-                <ScanLine className="h-3.5 w-3.5 text-blue-600" />
-                <span>Quick Scan</span>
-              </button>
-              <button
                 onClick={() => onNavigate('sales')}
-                className={`px-3 py-1.5 rounded-lg transition ${
+                className={`px-2.5 py-1.5 rounded-lg transition ${
                   currentView === 'sales'
                     ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400'
                     : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
@@ -142,8 +145,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                 Sales
               </button>
               <button
+                onClick={() => onNavigate('quotations')}
+                className={`px-2.5 py-1.5 rounded-lg transition ${
+                  currentView === 'quotations'
+                    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400 font-bold'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                }`}
+              >
+                Quotations
+              </button>
+              <button
                 onClick={() => onNavigate('customers')}
-                className={`px-3 py-1.5 rounded-lg transition ${
+                className={`px-2.5 py-1.5 rounded-lg transition ${
                   currentView === 'customers'
                     ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400'
                     : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
@@ -152,25 +165,133 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                 Customers
               </button>
               <button
-                onClick={() => onNavigate('invoices')}
-                className={`px-3 py-1.5 rounded-lg transition ${
-                  currentView === 'invoices'
-                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400'
+                onClick={() => onNavigate('expenses')}
+                className={`px-2.5 py-1.5 rounded-lg transition ${
+                  currentView === 'expenses'
+                    ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400'
                     : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
                 }`}
               >
-                Invoices
+                Expenses
               </button>
               <button
-                onClick={() => onNavigate('reports')}
-                className={`px-3 py-1.5 rounded-lg transition ${
-                  currentView === 'reports'
+                onClick={() => onNavigate('calendar')}
+                className={`px-2.5 py-1.5 rounded-lg transition ${
+                  currentView === 'calendar'
                     ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400'
                     : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
                 }`}
               >
-                Reports
+                Calendar
               </button>
+
+              {/* Tools & Management Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setToolsDropdownOpen(!toolsDropdownOpen)}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition ${
+                    [
+                      'suppliers',
+                      'notes',
+                      'stock-adjustments',
+                      'documents',
+                      'recycle-bin',
+                      'backup',
+                      'reports',
+                      'marketplace',
+                      'quick-scan',
+                    ].includes(currentView)
+                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400'
+                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                  }`}
+                >
+                  <span>More Tools</span>
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+
+                {toolsDropdownOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setToolsDropdownOpen(false)}
+                    />
+                    <div className="absolute left-0 mt-2 w-64 rounded-2xl bg-white p-2 shadow-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-900 z-50 animate-in fade-in-50 zoom-in-95">
+                      <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Business Operations
+                      </div>
+                      <button
+                        onClick={() => { onNavigate('suppliers'); setToolsDropdownOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <Truck className="h-4 w-4 text-teal-600" />
+                        <span>Suppliers Directory</span>
+                      </button>
+                      <button
+                        onClick={() => { onNavigate('stock-adjustments'); setToolsDropdownOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <SlidersHorizontal className="h-4 w-4 text-amber-600" />
+                        <span>Stock Adjustments & Audit</span>
+                      </button>
+                      <button
+                        onClick={() => { onNavigate('notes'); setToolsDropdownOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <BookOpen className="h-4 w-4 text-purple-600" />
+                        <span>Notes & Journal</span>
+                      </button>
+                      <button
+                        onClick={() => { onNavigate('documents'); setToolsDropdownOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <Receipt className="h-4 w-4 text-blue-600" />
+                        <span>Documents & Receipts</span>
+                      </button>
+                      <button
+                        onClick={() => { onNavigate('reports'); setToolsDropdownOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <BarChart3 className="h-4 w-4 text-indigo-600" />
+                        <span>Financial Analytics</span>
+                      </button>
+                      <button
+                        onClick={() => { onNavigate('marketplace'); setToolsDropdownOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <Store className="h-4 w-4 text-blue-600" />
+                        <span>Community Marketplace</span>
+                      </button>
+                      <button
+                        onClick={() => { onNavigate('quick-scan'); setToolsDropdownOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <ScanLine className="h-4 w-4 text-indigo-600" />
+                        <span>Barcode / QR Scan</span>
+                      </button>
+
+                      <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+
+                      <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Security & Data
+                      </div>
+                      <button
+                        onClick={() => { onNavigate('recycle-bin'); setToolsDropdownOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <Trash2 className="h-4 w-4 text-rose-500" />
+                        <span>Recycle Bin Recovery</span>
+                      </button>
+                      <button
+                        onClick={() => { onNavigate('backup'); setToolsDropdownOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <Database className="h-4 w-4 text-blue-500" />
+                        <span>Data Export & Backup</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </nav>
           )}
 
@@ -261,8 +382,23 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
           )}
         </div>
 
-        {/* Right Action Tools: PWA install, Theme toggle, Role Switcher & Profile Dropdown */}
+        {/* Right Action Tools: Search, PWA install, Theme toggle, Role Switcher & Profile Dropdown */}
         <div className="flex items-center gap-2">
+          {/* Universal Search Trigger */}
+          {onOpenSearch && (
+            <button
+              onClick={onOpenSearch}
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white transition"
+              title="Search catalog (Ctrl+K)"
+            >
+              <Search className="h-4 w-4 text-blue-600" />
+              <span className="hidden sm:inline text-xs font-medium">Search...</span>
+              <kbd className="hidden lg:inline-block px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white dark:bg-slate-700 text-slate-400 rounded border border-slate-200 dark:border-slate-600">
+                ⌘K
+              </kbd>
+            </button>
+          )}
+
           {/* In-app PWA install button */}
           <PWAInstallButton />
 
@@ -343,6 +479,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                       Business Profile & Settings
                     </button>
 
+                    <button
+                      onClick={() => {
+                        onNavigate('backup');
+                        setUserMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                    >
+                      <Database className="h-4 w-4 text-blue-500" />
+                      Data Export & Backup
+                    </button>
+
                     {isAdmin && (
                       <button
                         onClick={() => {
@@ -377,7 +524,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
           {/* Mobile hamburger menu toggle */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+            className="lg:hidden rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
           >
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -386,7 +533,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
 
       {/* Mobile Drawer Menu for extra links */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 space-y-1">
+        <div className="lg:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 space-y-1 max-h-[85vh] overflow-y-auto">
           {!isInAdminView ? (
             <>
               <button
@@ -404,25 +551,60 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                 Products & Inventory
               </button>
               <button
-                onClick={() => { onNavigate('marketplace'); setMobileMenuOpen(false); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-blue-700 dark:text-blue-300 bg-blue-50/70 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50"
-              >
-                <Store className="h-4 w-4 text-blue-600" />
-                Community Marketplace & Search
-              </button>
-              <button
-                onClick={() => { onNavigate('quick-scan'); setMobileMenuOpen(false); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50/70 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50"
-              >
-                <ScanLine className="h-4 w-4 text-indigo-600" />
-                Quick Barcode / QR Scan
-              </button>
-              <button
                 onClick={() => { onNavigate('sales'); setMobileMenuOpen(false); }}
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
-                <ShoppingBag className="h-4 w-4 text-amber-600" />
+                <ShoppingBag className="h-4 w-4 text-blue-600" />
                 Sales Terminal
+              </button>
+              <button
+                onClick={() => { onNavigate('quotations'); setMobileMenuOpen(false); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/30"
+              >
+                <FileText className="h-4 w-4 text-indigo-600" />
+                Quotations & Estimates
+              </button>
+              <button
+                onClick={() => { onNavigate('calendar'); setMobileMenuOpen(false); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <Calendar className="h-4 w-4 text-blue-600" />
+                Business Calendar
+              </button>
+              <button
+                onClick={() => { onNavigate('expenses'); setMobileMenuOpen(false); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <TrendingDown className="h-4 w-4 text-rose-600" />
+                Business Expenses
+              </button>
+              <button
+                onClick={() => { onNavigate('suppliers'); setMobileMenuOpen(false); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <Truck className="h-4 w-4 text-teal-600" />
+                Suppliers Directory
+              </button>
+              <button
+                onClick={() => { onNavigate('stock-adjustments'); setMobileMenuOpen(false); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <SlidersHorizontal className="h-4 w-4 text-amber-600" />
+                Stock Adjustments & Audit
+              </button>
+              <button
+                onClick={() => { onNavigate('notes'); setMobileMenuOpen(false); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <BookOpen className="h-4 w-4 text-purple-600" />
+                Business Notes & Journal
+              </button>
+              <button
+                onClick={() => { onNavigate('documents'); setMobileMenuOpen(false); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <Receipt className="h-4 w-4 text-blue-600" />
+                Documents & Receipts Studio
               </button>
               <button
                 onClick={() => { onNavigate('customers'); setMobileMenuOpen(false); }}
@@ -432,18 +614,25 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                 Customers
               </button>
               <button
-                onClick={() => { onNavigate('invoices'); setMobileMenuOpen(false); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-              >
-                <FileText className="h-4 w-4 text-cyan-600" />
-                Invoices & Receipts
-              </button>
-              <button
                 onClick={() => { onNavigate('reports'); setMobileMenuOpen(false); }}
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <BarChart3 className="h-4 w-4 text-indigo-600" />
                 Reports & Analytics
+              </button>
+              <button
+                onClick={() => { onNavigate('recycle-bin'); setMobileMenuOpen(false); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <Trash2 className="h-4 w-4 text-rose-500" />
+                Recycle Bin Recovery
+              </button>
+              <button
+                onClick={() => { onNavigate('backup'); setMobileMenuOpen(false); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <Database className="h-4 w-4 text-blue-500" />
+                Data Export & Backup
               </button>
               <button
                 onClick={() => { onNavigate('profile'); setMobileMenuOpen(false); }}
