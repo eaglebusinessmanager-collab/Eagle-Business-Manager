@@ -27,9 +27,15 @@ import {
   Trash2,
   Database,
   Sparkles,
+  Bell,
+  Calculator,
+  Banknote,
+  CreditCard,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { PWAInstallButton } from './PWAInstallButton';
+import { notificationService } from '../../services/notificationService';
+import { NotificationCenterModal } from './NotificationCenterModal';
 
 interface NavbarProps {
   currentView: string;
@@ -51,6 +57,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toolsDropdownOpen, setToolsDropdownOpen] = useState(false);
+  const [notificationModalOpen, setNotificationModalOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    // Subscribe to notification updates for badge counter
+    const unsubscribe = notificationService.subscribeToHistory((list) => {
+      const unread = list.filter((n) => !n.read).length;
+      setUnreadCount(unread);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     // Check saved theme preference or system default
@@ -219,6 +236,44 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                         Business Operations
                       </div>
+                      <button
+                        onClick={() => { onNavigate('tools'); setToolsDropdownOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <Calculator className="h-4 w-4 text-blue-600" />
+                        <span>Eagle Tools Suite</span>
+                      </button>
+                      <button
+                        onClick={() => { onNavigate('cash-register'); setToolsDropdownOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <Banknote className="h-4 w-4 text-emerald-600" />
+                        <span>Cash Register & Closing</span>
+                      </button>
+                      <button
+                        onClick={() => { onNavigate('debts'); setToolsDropdownOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <CreditCard className="h-4 w-4 text-rose-600" />
+                        <span>Customer Debts & Credit</span>
+                      </button>
+                      <button
+                        onClick={() => { onNavigate('purchases'); setToolsDropdownOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <Truck className="h-4 w-4 text-amber-600" />
+                        <span>Purchases & Restock (PO)</span>
+                      </button>
+                      <button
+                        onClick={() => { onNavigate('modules'); setToolsDropdownOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <SlidersHorizontal className="h-4 w-4 text-purple-600" />
+                        <span>Module Customizer</span>
+                      </button>
+
+                      <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+
                       <button
                         onClick={() => { onNavigate('suppliers'); setToolsDropdownOpen(false); }}
                         className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -419,6 +474,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
             </button>
           )}
+
+          {/* Push & In-App Notification Center Bell */}
+          <button
+            onClick={() => setNotificationModalOpen(true)}
+            className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition cursor-pointer"
+            title="Notification Center & Announcements"
+          >
+            <Bell className="h-4 w-4" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white shadow-xs animate-pulse">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
 
           {/* Theme Toggle Button */}
           <button
@@ -697,6 +766,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
         </div>
       )}
+
+      {/* Notification Center Modal */}
+      <NotificationCenterModal
+        isOpen={notificationModalOpen}
+        onClose={() => setNotificationModalOpen(false)}
+        onNavigate={onNavigate}
+      />
     </header>
   );
 };

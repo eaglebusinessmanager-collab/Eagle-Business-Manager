@@ -33,6 +33,13 @@ import { NotesPage } from './pages/user/NotesPage';
 import { DocumentsPage } from './pages/user/DocumentsPage';
 import { RecycleBinPage } from './pages/user/RecycleBinPage';
 import { BackupPage } from './pages/user/BackupPage';
+import { EagleToolsPage } from './pages/user/EagleToolsPage';
+import { CashRegisterPage } from './pages/user/CashRegisterPage';
+import { CreditDebtsPage } from './pages/user/CreditDebtsPage';
+import { PurchasesPage } from './pages/user/PurchasesPage';
+import { BusinessModulesPage } from './pages/user/BusinessModulesPage';
+import { NotificationPopup } from './components/common/NotificationPopup';
+import { notificationService } from './services/notificationService';
 
 // Admin Pages
 import { AdminDashboard } from './pages/admin/AdminDashboard';
@@ -80,6 +87,16 @@ const MainApp: React.FC = () => {
       dbService.getActiveAnnouncements().then(setAnnouncements).catch(console.error);
     }
   }, [isAuthenticated]);
+
+  // Real-time Push & In-App Notification Engine with Audio Sound
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      notificationService.startListening(user.id, business?.id);
+      return () => {
+        notificationService.stopListening();
+      };
+    }
+  }, [isAuthenticated, user?.id, business?.id]);
 
   // Global Keyboard Shortcut for Search (Ctrl+K or Cmd+K)
   useEffect(() => {
@@ -211,6 +228,9 @@ const MainApp: React.FC = () => {
       {/* Offline Status Bar */}
       <OfflineIndicator />
 
+      {/* Real-time Push Notification Floating Toast with Audio */}
+      <NotificationPopup onNavigate={handleNavigate} />
+
       {/* Top Navbar */}
       <Navbar
         currentView={currentView}
@@ -289,6 +309,11 @@ const MainApp: React.FC = () => {
         {currentView === 'recycle-bin' && <RecycleBinPage />}
         {currentView === 'backup' && <BackupPage />}
         {currentView === 'profile' && <BusinessProfilePage />}
+        {currentView === 'tools' && <EagleToolsPage onNavigate={handleNavigate} />}
+        {currentView === 'cash-register' && <CashRegisterPage />}
+        {currentView === 'debts' && <CreditDebtsPage />}
+        {currentView === 'purchases' && <PurchasesPage />}
+        {currentView === 'modules' && <BusinessModulesPage />}
 
         {/* ADMIN PORTAL ROUTES (Strictly Protected) */}
         {user.role === 'admin' ? (

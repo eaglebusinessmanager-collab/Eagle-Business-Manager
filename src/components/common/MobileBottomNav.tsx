@@ -21,6 +21,9 @@ import {
   Receipt,
   Trash2,
   Database,
+  Calculator,
+  Banknote,
+  CreditCard,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -242,6 +245,46 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ currentView, o
             </div>
 
             <div className="grid grid-cols-2 gap-2.5">
+              <button
+                onClick={() => { onNavigate('tools'); setShowMoreMenu(false); }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-xs font-bold text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900/50"
+              >
+                <Calculator className="h-4 w-4 text-blue-600" />
+                Eagle Tools
+              </button>
+
+              <button
+                onClick={() => { onNavigate('cash-register'); setShowMoreMenu(false); }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-xs font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/50"
+              >
+                <Banknote className="h-4 w-4 text-emerald-600" />
+                Cash Register
+              </button>
+
+              <button
+                onClick={() => { onNavigate('debts'); setShowMoreMenu(false); }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-xs font-bold text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/50"
+              >
+                <CreditCard className="h-4 w-4 text-rose-600" />
+                Customer Debts
+              </button>
+
+              <button
+                onClick={() => { onNavigate('purchases'); setShowMoreMenu(false); }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-xs font-bold text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50"
+              >
+                <Truck className="h-4 w-4 text-amber-600" />
+                Purchases / PO
+              </button>
+
+              <button
+                onClick={() => { onNavigate('modules'); setShowMoreMenu(false); }}
+                className="flex items-center gap-2.5 p-3 rounded-2xl bg-purple-50 dark:bg-purple-950/60 text-xs font-bold text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-900/50"
+              >
+                <SlidersHorizontal className="h-4 w-4 text-purple-600" />
+                Module Setup
+              </button>
+
               <button
                 onClick={() => { onNavigate('calendar'); setShowMoreMenu(false); }}
                 className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-800 dark:text-slate-200"

@@ -147,6 +147,7 @@ export interface Sale {
   discount: number;
   total: number;
   paymentStatus: PaymentStatus;
+  amountPaid?: number;
   paymentMethod: PaymentMethod;
   notes?: string;
   createdAt: string;
@@ -447,13 +448,93 @@ export interface ProductReport {
 
 export interface InAppNotification {
   id: string;
-  userId: string;
+  userId: string; // 'all' or specific userId or specific businessId
   title: string;
   message: string;
   type: 'info' | 'success' | 'warning' | 'alert';
   link?: string;
   read: boolean;
   createdAt: string;
+  sound?: 'chime' | 'alert' | 'bell' | 'cash' | 'pop' | 'none';
+  priority?: 'normal' | 'high' | 'urgent';
+  targetType?: 'all' | 'specific_business' | 'specific_user';
+  targetBusinessId?: string;
+  targetBusinessName?: string;
+  actionLabel?: string;
+  actionView?: string;
+}
+
+export interface CashRegisterSession {
+  id: string;
+  businessId: string;
+  openedAt: string;
+  closedAt?: string;
+  openedBy: string;
+  openedByName: string;
+  closedBy?: string;
+  closedByName?: string;
+  openingFloat: number;
+  cashSales: number;
+  momoSales: number;
+  airtelSales: number;
+  cardSales: number;
+  cashExpenses: number;
+  expectedCash: number;
+  actualCashCounted?: number;
+  cashVariance?: number; // actual - expected
+  notes?: string;
+  status: 'open' | 'closed';
+  denominations?: Record<string, number>;
+}
+
+export interface PurchaseOrderItem {
+  productId?: string;
+  productName: string;
+  sku?: string;
+  quantity: number;
+  unitCost: number;
+  totalCost: number;
+  receivedQuantity?: number;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  businessId: string;
+  poNumber: string;
+  supplierId?: string;
+  supplierName: string;
+  supplierPhone?: string;
+  items: PurchaseOrderItem[];
+  totalAmount: number;
+  status: 'draft' | 'ordered' | 'received' | 'cancelled';
+  orderDate: string;
+  expectedDeliveryDate?: string;
+  receivedDate?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+}
+
+export interface BusinessModuleConfig {
+  pos: boolean;
+  products: boolean;
+  sales: boolean;
+  quotations: boolean;
+  purchases: boolean;
+  cashRegister: boolean;
+  debts: boolean;
+  customers: boolean;
+  suppliers: boolean;
+  expenses: boolean;
+  calendar: boolean;
+  stockAdjustments: boolean;
+  notes: boolean;
+  tools: boolean;
+  marketplace: boolean;
+  reports: boolean;
+  documents: boolean;
+  backup: boolean;
 }
 
 export interface PlatformStats {

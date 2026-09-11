@@ -1395,6 +1395,33 @@ export const dbService = {
     return sale;
   },
 
+  async updateSalePaymentStatus(
+    saleId: string,
+    paymentStatus: PaymentStatus,
+    amountPaid?: number
+  ): Promise<void> {
+    const sales = getStored<Sale[]>('sales', INITIAL_SALES);
+    const idx = sales.findIndex((s) => s.id === saleId);
+    if (idx !== -1) {
+      sales[idx] = {
+        ...sales[idx],
+        paymentStatus,
+        amountPaid: amountPaid !== undefined ? amountPaid : sales[idx].amountPaid,
+      };
+      setStored('sales', sales);
+    }
+    if (isFirebaseConfigured() && db) {
+      try {
+        await updateDoc(doc(db, 'sales', saleId), {
+          paymentStatus,
+          ...(amountPaid !== undefined ? { amountPaid } : {}),
+        });
+      } catch (err) {
+        console.warn('Firebase updateSalePaymentStatus error:', err);
+      }
+    }
+  },
+
   // Invoices
   async getInvoices(businessId: string): Promise<Invoice[]> {
     if (isFirebaseConfigured() && db) {

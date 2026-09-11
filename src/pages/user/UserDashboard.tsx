@@ -25,6 +25,9 @@ import {
   Database,
   Sparkles,
   Command,
+  Calculator,
+  Banknote,
+  CreditCard,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { dbService } from '../../services/db';
@@ -459,6 +462,111 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
             </h4>
             <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
               Excel spreadsheets & full snapshot restore
+            </p>
+          </div>
+
+          {/* Eagle Tools Suite */}
+          <div
+            onClick={() => onNavigate('tools')}
+            className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 transition cursor-pointer group"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="h-8 w-8 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 flex items-center justify-center">
+                <Calculator className="h-4 w-4" />
+              </div>
+              <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300">
+                Calculators
+              </span>
+            </div>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition">
+              Eagle Tools Suite
+            </h4>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Margin calculator, URA VAT, barcodes & vCard
+            </p>
+          </div>
+
+          {/* Cash Register & Closing */}
+          <div
+            onClick={() => onNavigate('cash-register')}
+            className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30 transition cursor-pointer group"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="h-8 w-8 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 flex items-center justify-center">
+                <Banknote className="h-4 w-4" />
+              </div>
+              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
+                Z-Report
+              </span>
+            </div>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition">
+              Cash Register
+            </h4>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Daily closing, drawer balance & MoMo reconcile
+            </p>
+          </div>
+
+          {/* Credit & Debts */}
+          <div
+            onClick={() => onNavigate('debts')}
+            className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-rose-50/50 dark:hover:bg-rose-950/30 transition cursor-pointer group"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="h-8 w-8 rounded-xl bg-rose-100 dark:bg-rose-950 text-rose-600 flex items-center justify-center">
+                <CreditCard className="h-4 w-4" />
+              </div>
+              <span className="text-[10px] font-bold text-rose-700 dark:text-rose-300">
+                Aging Debts
+              </span>
+            </div>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-rose-600 transition">
+              Customer Debts
+            </h4>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Receivables ledger & 1-click WhatsApp reminders
+            </p>
+          </div>
+
+          {/* Purchases & Procurement */}
+          <div
+            onClick={() => onNavigate('purchases')}
+            className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-amber-50/50 dark:hover:bg-amber-950/30 transition cursor-pointer group"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="h-8 w-8 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 flex items-center justify-center">
+                <Truck className="h-4 w-4" />
+              </div>
+              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300">
+                PO Restock
+              </span>
+            </div>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-amber-600 transition">
+              Purchase Orders
+            </h4>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Supplier restock POs & automatic stock-in
+            </p>
+          </div>
+
+          {/* Business Modules Customizer */}
+          <div
+            onClick={() => onNavigate('modules')}
+            className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-purple-50/50 dark:hover:bg-purple-950/30 transition cursor-pointer group"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="h-8 w-8 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 flex items-center justify-center">
+                <SlidersHorizontal className="h-4 w-4" />
+              </div>
+              <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300">
+                Industry
+              </span>
+            </div>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-purple-600 transition">
+              Module Config
+            </h4>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Toggle features for retail, wholesale, salon, cafe
             </p>
           </div>
         </div>
