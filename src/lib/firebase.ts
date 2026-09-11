@@ -38,7 +38,11 @@ const firebaseConfig = {
   storageBucket: firebaseConfigJson.storageBucket || import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
   messagingSenderId: firebaseConfigJson.messagingSenderId || import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
   appId: firebaseConfigJson.appId || import.meta.env.VITE_FIREBASE_APP_ID || '',
-  firestoreDatabaseId: firebaseConfigJson.firestoreDatabaseId || import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || '(default)',
+  firestoreDatabaseId:
+    (firebaseConfigJson as any).databaseId ||
+    (firebaseConfigJson as any).firestoreDatabaseId ||
+    import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID ||
+    '(default)',
 };
 
 let app: FirebaseApp | null = null;
@@ -64,8 +68,6 @@ if (isFirebaseConfigured()) {
   }
 }
 
-export { app, auth, db, storage };
-
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
   const currentAuth = auth?.currentUser;
   const errInfo: FirestoreErrorInfo = {
@@ -84,22 +86,12 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path,
   };
-  console.error('Firestore Error:', JSON.stringify(errInfo));
+  console.warn('Firestore Error caught:', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }
 
-// Test connection on boot as mandated by Firebase skill
-if (db) {
-  (async () => {
-    try {
-      await getDocFromServer(doc(db, 'test', 'connection'));
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('the client is offline')) {
-        console.warn('Firebase: client is operating in local/offline state.');
-      }
-    }
-  })();
-}
+// Firebase Storage & Cloud Firestore ready
+export { app, auth, db, storage };
 
 // Helper to upload images directly to Firebase Storage
 export async function uploadFileToStorage(

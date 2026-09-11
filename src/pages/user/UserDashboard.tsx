@@ -236,7 +236,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
           Frequent Actions
         </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
           <button
             onClick={() => onNavigate('sales')}
             className="flex flex-col items-center justify-center p-3 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 transition active:scale-95 border border-blue-100 dark:border-blue-900/40 text-center cursor-pointer"
@@ -245,11 +245,18 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
             <span className="text-xs font-bold">Record Sale</span>
           </button>
           <button
-            onClick={() => onNavigate('products')}
+            onClick={() => onNavigate('finance')}
             className="flex flex-col items-center justify-center p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 transition active:scale-95 border border-emerald-100 dark:border-emerald-900/40 text-center cursor-pointer"
           >
-            <PlusCircle className="h-5 w-5 mb-1 text-emerald-600 dark:text-emerald-400" />
-            <span className="text-xs font-bold">Add Product</span>
+            <Banknote className="h-5 w-5 mb-1 text-emerald-600 dark:text-emerald-400" />
+            <span className="text-xs font-bold">Finance</span>
+          </button>
+          <button
+            onClick={() => onNavigate('products')}
+            className="flex flex-col items-center justify-center p-3 rounded-xl bg-teal-50/80 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 hover:bg-teal-100 transition active:scale-95 border border-teal-100 dark:border-teal-900/40 text-center cursor-pointer"
+          >
+            <PlusCircle className="h-5 w-5 mb-1 text-teal-600 dark:text-teal-400" />
+            <span className="text-xs font-bold">Products</span>
           </button>
           <button
             onClick={() => onNavigate('quotations')}
@@ -263,7 +270,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
             className="flex flex-col items-center justify-center p-3 rounded-xl bg-purple-50/80 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 hover:bg-purple-100 transition active:scale-95 border border-purple-100 dark:border-purple-900/40 text-center cursor-pointer"
           >
             <Users className="h-5 w-5 mb-1 text-purple-600 dark:text-purple-400" />
-            <span className="text-xs font-bold">Add Customer</span>
+            <span className="text-xs font-bold">Customers</span>
           </button>
           <button
             onClick={() => onNavigate('expenses')}

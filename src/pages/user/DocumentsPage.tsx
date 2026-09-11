@@ -16,7 +16,11 @@ import { dbService } from '../../services/db';
 import { useAuth } from '../../context/AuthContext';
 import { ReceiptConfig, Product, Sale } from '../../types';
 
-export const DocumentsPage: React.FC = () => {
+interface DocumentsPageProps {
+  onNavigate?: (view: string) => void;
+}
+
+export const DocumentsPage: React.FC<DocumentsPageProps> = ({ onNavigate }) => {
   const { business } = useAuth();
   const [activeTab, setActiveTab] = useState<'generator' | 'receipt_config'>('generator');
   const [products, setProducts] = useState<Product[]>([]);
@@ -117,8 +121,17 @@ export const DocumentsPage: React.FC = () => {
             }`}
           >
             <Receipt className="h-4 w-4" />
-            <span>Receipt Customization</span>
+            <span>Receipt Settings</span>
           </button>
+          {onNavigate && (
+            <button
+              onClick={() => onNavigate('receipt-studio')}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition shadow-xs cursor-pointer ml-1"
+            >
+              <Sparkles className="h-4 w-4" />
+              <span>Full Receipt Studio</span>
+            </button>
+          )}
         </div>
       </div>
 

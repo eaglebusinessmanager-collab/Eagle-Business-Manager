@@ -23,12 +23,15 @@ import {
   Store,
   MessageCircle,
   Info,
+  ScanLine,
+  Calendar,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { dbService } from '../../services/db';
 import { InventoryMovement, Product } from '../../types';
 import { ConfirmationModal } from '../../components/common/ConfirmationModal';
 import { ProductImageUploader } from '../../components/products/ProductImageUploader';
+import { CameraScannerModal } from '../../components/common/CameraScannerModal';
 
 interface ProductsPageProps {
   onNavigate?: (view: string) => void;
@@ -39,7 +42,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ onNavigate }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
-  const [stockFilter, setStockFilter] = useState('all'); // all, low, out
+  const [stockFilter, setStockFilter] = useState('all'); // all, low, out, expiring, expired
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'stock' | 'created'>('name');
   const [loading, setLoading] = useState(true);
 
@@ -54,10 +57,16 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ onNavigate }) => {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [zoomImage, setZoomImage] = useState<Product | null>(null);
 
-  // Form State
+  // Barcode / QR Scanner state
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannerTarget, setScannerTarget] = useState<'search' | 'form'>('search');
+
+  // Form State with Smart Inventory Batch & Expiry
   const [formData, setFormData] = useState({
     name: '',
     sku: '',
+    batchNumber: '',
+    expiryDate: '',
     category: 'General',
     description: '',
     buyingPrice: 0,
@@ -95,6 +104,8 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ onNavigate }) => {
     setFormData({
       name: '',
       sku: 'SKU-' + Math.floor(1000 + Math.random() * 9000),
+      batchNumber: 'BAT-' + new Date().getFullYear() + '-' + Math.floor(100 + Math.random() * 900),
+      expiryDate: '',
       category: 'General',
       description: '',
       buyingPrice: 0,
@@ -115,6 +126,8 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ onNavigate }) => {
     setFormData({
       name: prod.name,
       sku: prod.sku,
+      batchNumber: prod.batchNumber || '',
+      expiryDate: prod.expiryDate || '',
       category: prod.category,
       description: prod.description,
       buyingPrice: prod.buyingPrice,
@@ -137,6 +150,8 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ onNavigate }) => {
       await dbService.updateProduct(editingProduct.id, business.id, {
         name: formData.name,
         sku: formData.sku,
+        batchNumber: formData.batchNumber || undefined,
+        expiryDate: formData.expiryDate || undefined,
         category: formData.category,
         description: formData.description,
         buyingPrice: Number(formData.buyingPrice),
@@ -153,6 +168,8 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ onNavigate }) => {
         businessId: business.id,
         name: formData.name,
         sku: formData.sku,
+        batchNumber: formData.batchNumber || undefined,
+        expiryDate: formData.expiryDate || undefined,
         category: formData.category,
         description: formData.description,
         buyingPrice: Number(formData.buyingPrice),
@@ -210,20 +227,42 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ onNavigate }) => {
     setMovementHistory(movs);
   };
 
+  const handleScanSuccess = (scannedCode: string) => {
+    if (scannerTarget === 'form') {
+      setFormData((prev) => ({ ...prev, sku: scannedCode }));
+    } else {
+      setSearchQuery(scannedCode);
+    }
+    setShowScanner(false);
+  };
+
   // Filter & Sort
   const filteredProducts = products.filter((p) => {
     const matchesSearch =
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.batchNumber && p.batchNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
       p.category.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesCategory = categoryFilter === 'All' || p.category === categoryFilter;
 
     let matchesStock = true;
+    const now = new Date();
+    const thirtyDaysAhead = new Date();
+    thirtyDaysAhead.setDate(now.getDate() + 30);
+
     if (stockFilter === 'low') {
       matchesStock = p.currentStock <= p.minStockLevel && p.currentStock > 0;
     } else if (stockFilter === 'out') {
       matchesStock = p.currentStock === 0;
+    } else if (stockFilter === 'expiring') {
+      if (!p.expiryDate) return false;
+      const exp = new Date(p.expiryDate);
+      matchesStock = exp >= now && exp <= thirtyDaysAhead;
+    } else if (stockFilter === 'expired') {
+      if (!p.expiryDate) return false;
+      const exp = new Date(p.expiryDate);
+      matchesStock = exp < now;
     }
 
     return matchesSearch && matchesCategory && matchesStock;
@@ -277,18 +316,32 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ onNavigate }) => {
       {/* Filter and Search Bar */}
       <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
-          {/* Search Box */}
-          <div className="relative sm:col-span-2">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-              <Search className="h-4 w-4" />
+          {/* Search Box with Barcode Scan Button */}
+          <div className="relative sm:col-span-2 flex gap-2">
+            <div className="relative flex-1">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <Search className="h-4 w-4" />
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search product name, SKU, batch, or category..."
+                className="block w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              />
             </div>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search product name, SKU, or category..."
-              className="block w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
-            />
+            <button
+              type="button"
+              onClick={() => {
+                setScannerTarget('search');
+                setShowScanner(true);
+              }}
+              className="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs shrink-0 cursor-pointer"
+              title="Scan barcode or QR to search product"
+            >
+              <ScanLine className="h-4 w-4" />
+              <span className="hidden sm:inline">Scan</span>
+            </button>
           </div>
 
           {/* Category Filter */}
@@ -306,16 +359,18 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ onNavigate }) => {
             </select>
           </div>
 
-          {/* Stock Level Filter */}
+          {/* Stock Level & Expiry Filter */}
           <div>
             <select
               value={stockFilter}
               onChange={(e) => setStockFilter(e.target.value)}
-              className="block w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="block w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 font-semibold"
             >
-              <option value="all">Stock: All</option>
-              <option value="low">Stock: Low Alerts</option>
-              <option value="out">Stock: Out of Stock</option>
+              <option value="all">Stock: All Items</option>
+              <option value="low">⚠️ Low Stock Alerts</option>
+              <option value="out">🛑 Out of Stock</option>
+              <option value="expiring">⏳ Expiring Soon (30d)</option>
+              <option value="expired">❌ Expired Batches</option>
             </select>
           </div>
         </div>
@@ -448,12 +503,49 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ onNavigate }) => {
                     </div>
                   </div>
 
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1">
-                    {p.name}
-                  </h3>
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1">
+                      {p.name}
+                    </h3>
+                    {p.batchNumber && (
+                      <span className="shrink-0 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        {p.batchNumber}
+                      </span>
+                    )}
+                  </div>
+
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
                     SKU: {p.sku}
                   </p>
+
+                  {/* Smart Inventory: Expiry Warning Banner if set */}
+                  {p.expiryDate && (() => {
+                    const now = new Date();
+                    const exp = new Date(p.expiryDate);
+                    const diffDays = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 3600 * 24));
+                    if (diffDays < 0) {
+                      return (
+                        <div className="mt-1.5 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 text-[11px] font-bold">
+                          <AlertTriangle className="h-3 w-3 shrink-0 text-rose-600" />
+                          <span>EXPIRED ({Math.abs(diffDays)}d ago) • {p.expiryDate}</span>
+                        </div>
+                      );
+                    } else if (diffDays <= 30) {
+                      return (
+                        <div className="mt-1.5 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900/60 text-amber-700 dark:text-amber-300 text-[11px] font-bold">
+                          <AlertTriangle className="h-3 w-3 shrink-0 text-amber-600" />
+                          <span>EXPIRING SOON ({diffDays} days left) • {p.expiryDate}</span>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div className="mt-1.5 flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-50 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 text-[10px] font-medium">
+                          <Calendar className="h-3 w-3 shrink-0 text-slate-400" />
+                          <span>Expires: {p.expiryDate} ({diffDays}d)</span>
+                        </div>
+                      );
+                    }
+                  })()}
 
                   {p.description && (
                     <p className="text-xs text-slate-600 dark:text-slate-300 mt-1.5 line-clamp-2 leading-relaxed">
@@ -461,28 +553,46 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ onNavigate }) => {
                     </p>
                   )}
 
-                  {/* Price and Stock Metrics */}
-                  <div className="mt-3.5 grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-medium block">Selling Price</span>
-                      <span className="text-xs font-bold font-mono text-blue-600 dark:text-blue-400">
-                        {formatCurrency(p.sellingPrice)}
-                      </span>
+                  {/* Price, Cost & Margin Metrics */}
+                  <div className="mt-3.5 space-y-1.5 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-medium block">Selling Price</span>
+                        <span className="text-xs font-bold font-mono text-blue-600 dark:text-blue-400">
+                          {formatCurrency(p.sellingPrice)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-medium block">Available Units</span>
+                        <span
+                          className={`text-xs font-bold font-mono ${
+                            isOutOfStock
+                              ? 'text-rose-600 dark:text-rose-400'
+                              : isLowStock
+                              ? 'text-amber-600 dark:text-amber-400'
+                              : 'text-slate-900 dark:text-white'
+                          }`}
+                        >
+                          {p.currentStock} units
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-medium block">Available Units</span>
-                      <span
-                        className={`text-xs font-bold font-mono ${
-                          isOutOfStock
-                            ? 'text-rose-600 dark:text-rose-400'
-                            : isLowStock
-                            ? 'text-amber-600 dark:text-amber-400'
-                            : 'text-slate-900 dark:text-white'
-                        }`}
-                      >
-                        {p.currentStock} units
-                      </span>
-                    </div>
+
+                    {/* Cost & Profit Margin row */}
+                    {p.buyingPrice > 0 && (
+                      <div className="pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-[10px]">
+                        <span className="text-slate-500 dark:text-slate-400">
+                          Cost: <span className="font-mono font-semibold">{formatCurrency(p.buyingPrice)}</span>
+                        </span>
+                        {p.sellingPrice > p.buyingPrice ? (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold font-mono">
+                            Margin: +{formatCurrency(p.sellingPrice - p.buyingPrice)} (+{Math.round(((p.sellingPrice - p.buyingPrice) / p.buyingPrice) * 100)}%)
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 font-medium font-mono">0% margin</span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Seller / Contact Info */}
@@ -577,18 +687,31 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ onNavigate }) => {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="font-semibold text-slate-700 dark:text-slate-300">
-                      SKU Code
+                      SKU / Barcode *
                     </label>
-                    <span className="text-[10px] text-slate-400 font-normal">Auto-generated</span>
+                    <span className="text-[10px] text-slate-400 font-normal">Auto or Scanned</span>
                   </div>
-                  <input
-                    type="text"
-                    required
-                    value={formData.sku}
-                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                    placeholder="e.g. EL-TV-4301"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
-                  />
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      required
+                      value={formData.sku}
+                      onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                      placeholder="e.g. EL-TV-4301"
+                      className="flex-1 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setScannerTarget('form');
+                        setShowScanner(true);
+                      }}
+                      className="px-2.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition flex items-center justify-center shrink-0 cursor-pointer"
+                      title="Scan barcode with camera into SKU"
+                    >
+                      <ScanLine className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -602,6 +725,77 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ onNavigate }) => {
                     placeholder="e.g. Electronics"
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                   />
+                </div>
+              </div>
+
+              {/* Smart Inventory: Batch Number & Expiry Date Section */}
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/70 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                    <Package className="h-3.5 w-3.5 text-blue-600" />
+                    <span>Batch Number & Expiry (Smart Inventory)</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400">Optional for non-perishables</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                      Batch / Lot Number
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.batchNumber}
+                      onChange={(e) => setFormData({ ...formData, batchNumber: e.target.value })}
+                      placeholder="e.g. BAT-2025-09"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                      Expiration Date
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.expiryDate}
+                      onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Quick Expiry Presets */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  <span className="text-[10px] text-slate-400 font-medium">Quick Expiry:</span>
+                  {[
+                    { label: '+3 Months', months: 3 },
+                    { label: '+6 Months', months: 6 },
+                    { label: '+1 Year', months: 12 },
+                    { label: '+2 Years', months: 24 },
+                  ].map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => {
+                        const d = new Date();
+                        d.setMonth(d.getMonth() + preset.months);
+                        setFormData({ ...formData, expiryDate: d.toISOString().split('T')[0] });
+                      }}
+                      className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 transition cursor-pointer"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                  {formData.expiryDate && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, expiryDate: '' })}
+                      className="text-[10px] text-rose-500 hover:underline ml-1 font-semibold cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -995,6 +1189,20 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ onNavigate }) => {
             </div>
           </div>
         </div>
+      )}
+      {/* Camera Scanner Modal for Barcode / QR */}
+      {showScanner && (
+        <CameraScannerModal
+          isOpen={showScanner}
+          onClose={() => setShowScanner(false)}
+          onScanSuccess={handleScanSuccess}
+          title={scannerTarget === 'form' ? 'Scan Product Barcode / SKU' : 'Search by Barcode / QR'}
+          subtitle={
+            scannerTarget === 'form'
+              ? 'Point camera at the product package to auto-fill the SKU'
+              : 'Point camera at any barcode to filter catalog'
+          }
+        />
       )}
     </div>
   );

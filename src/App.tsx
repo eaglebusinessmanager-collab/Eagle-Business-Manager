@@ -28,6 +28,7 @@ import { CalendarPage } from './pages/user/CalendarPage';
 import { QuotationsPage } from './pages/user/QuotationsPage';
 import { SuppliersPage } from './pages/user/SuppliersPage';
 import { ExpensesPage } from './pages/user/ExpensesPage';
+import { FinanceCashflowPage } from './pages/user/FinanceCashflowPage';
 import { StockAdjustmentsPage } from './pages/user/StockAdjustmentsPage';
 import { NotesPage } from './pages/user/NotesPage';
 import { DocumentsPage } from './pages/user/DocumentsPage';
@@ -38,6 +39,7 @@ import { CashRegisterPage } from './pages/user/CashRegisterPage';
 import { CreditDebtsPage } from './pages/user/CreditDebtsPage';
 import { PurchasesPage } from './pages/user/PurchasesPage';
 import { BusinessModulesPage } from './pages/user/BusinessModulesPage';
+import { ReceiptStudioPage } from './pages/user/ReceiptStudioPage';
 import { NotificationPopup } from './components/common/NotificationPopup';
 import { notificationService } from './services/notificationService';
 
@@ -300,11 +302,13 @@ const MainApp: React.FC = () => {
         {currentView === 'customers' && <CustomersPage />}
         {currentView === 'invoices' && <InvoicesPage />}
         {currentView === 'calendar' && <CalendarPage />}
-        {currentView === 'expenses' && <ExpensesPage />}
+        {currentView === 'expenses' && <ExpensesPage onNavigate={handleNavigate} />}
+        {currentView === 'finance' && <FinanceCashflowPage onNavigate={handleNavigate} />}
         {currentView === 'suppliers' && <SuppliersPage />}
         {currentView === 'stock-adjustments' && <StockAdjustmentsPage />}
         {currentView === 'notes' && <NotesPage />}
-        {currentView === 'documents' && <DocumentsPage />}
+        {currentView === 'documents' && <DocumentsPage onNavigate={handleNavigate} />}
+        {currentView === 'receipt-studio' && <ReceiptStudioPage onNavigate={handleNavigate} />}
         {currentView === 'reports' && <ReportsPage />}
         {currentView === 'recycle-bin' && <RecycleBinPage />}
         {currentView === 'backup' && <BackupPage />}

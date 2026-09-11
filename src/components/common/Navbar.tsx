@@ -182,6 +182,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                 Customers
               </button>
               <button
+                onClick={() => onNavigate('finance')}
+                className={`px-2.5 py-1.5 rounded-lg transition font-bold ${
+                  currentView === 'finance'
+                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                }`}
+              >
+                Finance & Cashflow
+              </button>
+              <button
                 onClick={() => onNavigate('expenses')}
                 className={`px-2.5 py-1.5 rounded-lg transition ${
                   currentView === 'expenses'
@@ -236,6 +246,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                         Business Operations
                       </div>
+                      <button
+                        onClick={() => { onNavigate('finance'); setToolsDropdownOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50/70 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
+                      >
+                        <Banknote className="h-4 w-4 text-emerald-600" />
+                        <span>Finance & Cashflow Hub</span>
+                      </button>
                       <button
                         onClick={() => { onNavigate('tools'); setToolsDropdownOpen(false); }}
                         className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -296,11 +313,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                         <span>Notes & Journal</span>
                       </button>
                       <button
-                        onClick={() => { onNavigate('documents'); setToolsDropdownOpen(false); }}
+                        onClick={() => { onNavigate('receipt-studio'); setToolsDropdownOpen(false); }}
                         className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                       >
                         <Receipt className="h-4 w-4 text-blue-600" />
-                        <span>Documents & Receipts</span>
+                        <span>Professional Receipt Studio</span>
+                      </button>
+                      <button
+                        onClick={() => { onNavigate('documents'); setToolsDropdownOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <FileText className="h-4 w-4 text-emerald-600" />
+                        <span>Documents & Delivery Notes</span>
                       </button>
                       <button
                         onClick={() => { onNavigate('reports'); setToolsDropdownOpen(false); }}
@@ -641,6 +665,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                 Business Calendar
               </button>
               <button
+                onClick={() => { onNavigate('finance'); setMobileMenuOpen(false); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100"
+              >
+                <Banknote className="h-4 w-4 text-emerald-600" />
+                Finance & Cashflow Hub
+              </button>
+              <button
                 onClick={() => { onNavigate('expenses'); setMobileMenuOpen(false); }}
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
@@ -669,11 +700,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                 Business Notes & Journal
               </button>
               <button
-                onClick={() => { onNavigate('documents'); setMobileMenuOpen(false); }}
+                onClick={() => { onNavigate('receipt-studio'); setMobileMenuOpen(false); }}
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <Receipt className="h-4 w-4 text-blue-600" />
-                Documents & Receipts Studio
+                Professional Receipt Studio
+              </button>
+              <button
+                onClick={() => { onNavigate('documents'); setMobileMenuOpen(false); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <FileText className="h-4 w-4 text-emerald-600" />
+                Documents & Delivery Notes
               </button>
               <button
                 onClick={() => { onNavigate('customers'); setMobileMenuOpen(false); }}

@@ -16,7 +16,9 @@ import { dbService } from '../../services/db';
 import { useAuth } from '../../context/AuthContext';
 import { Expense, ExpenseCategory, PaymentMethod } from '../../types';
 
-export const ExpensesPage: React.FC = () => {
+export const ExpensesPage: React.FC<{ onNavigate?: (view: string) => void }> = ({
+  onNavigate,
+}) => {
   const { business, user } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -144,13 +146,23 @@ export const ExpensesPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={openCreateModal}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm transition"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Record Expense</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {onNavigate && (
+            <button
+              onClick={() => onNavigate('finance')}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-bold shadow-xs transition"
+            >
+              <span>💰 Finance & Cashflow Hub</span>
+            </button>
+          )}
+          <button
+            onClick={openCreateModal}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm transition"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Record Expense</span>
+          </button>
+        </div>
       </div>
 
       {/* Metrics Banner */}

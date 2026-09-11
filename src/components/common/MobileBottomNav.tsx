@@ -326,11 +326,11 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ currentView, o
               </button>
 
               <button
-                onClick={() => { onNavigate('documents'); setShowMoreMenu(false); }}
+                onClick={() => { onNavigate('receipt-studio'); setShowMoreMenu(false); }}
                 className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 text-xs font-semibold text-slate-800 dark:text-slate-200"
               >
                 <Receipt className="h-4 w-4 text-blue-600" />
-                Receipts Studio
+                Receipt Studio
               </button>
 
               <button

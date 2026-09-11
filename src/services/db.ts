@@ -10,11 +10,13 @@ import {
   DocumentPrefixConfig,
   Expense,
   FavouriteItem,
+  FinanceReconciliationRecord,
   InAppNotification,
   InventoryMovement,
   Invoice,
   MarketplaceReview,
   ModerationStatus,
+  PaymentMethod,
   PaymentStatus,
   PlatformStats,
   Product,
@@ -23,6 +25,7 @@ import {
   ReceiptCustomizationConfig,
   RecycleBinItem,
   Sale,
+  SalePaymentRecord,
   StockAdjustment,
   Supplier,
   UserProfile,
@@ -1422,6 +1425,59 @@ export const dbService = {
     }
   },
 
+  async recordSalePayment(
+    saleId: string,
+    payment: {
+      amount: number;
+      paymentMethod: PaymentMethod | string;
+      notes?: string;
+      receivedBy?: string;
+    }
+  ): Promise<Sale | null> {
+    const sales = getStored<Sale[]>('sales', INITIAL_SALES);
+    const idx = sales.findIndex((s) => s.id === saleId);
+    if (idx === -1) return null;
+
+    const currentSale = sales[idx];
+    const previousPaid = currentSale.amountPaid || 0;
+    const newAmountPaid = previousPaid + payment.amount;
+    const isFullyPaid = newAmountPaid >= currentSale.total;
+    const newStatus: PaymentStatus = isFullyPaid ? 'paid' : 'partial';
+
+    const newPaymentRecord: SalePaymentRecord = {
+      id: `pay-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      amount: payment.amount,
+      paymentMethod: payment.paymentMethod as any,
+      date: new Date().toISOString(),
+      notes: payment.notes,
+      receivedBy: payment.receivedBy,
+    };
+
+    const updatedSale: Sale = {
+      ...currentSale,
+      paymentStatus: newStatus,
+      amountPaid: newAmountPaid,
+      paymentRecords: [...(currentSale.paymentRecords || []), newPaymentRecord],
+    };
+
+    sales[idx] = updatedSale;
+    setStored('sales', sales);
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await updateDoc(doc(db, 'sales', saleId), {
+          paymentStatus: newStatus,
+          amountPaid: newAmountPaid,
+          paymentRecords: updatedSale.paymentRecords,
+        });
+      } catch (err) {
+        console.warn('Firebase recordSalePayment error:', err);
+      }
+    }
+
+    return updatedSale;
+  },
+
   // Invoices
   async getInvoices(businessId: string): Promise<Invoice[]> {
     if (isFirebaseConfigured() && db) {
@@ -2159,6 +2215,33 @@ export const dbService = {
       }
     }
     return true;
+  },
+
+  // Reconciliation records
+  async getReconciliations(businessId: string): Promise<FinanceReconciliationRecord[]> {
+    const list = getStored<FinanceReconciliationRecord[]>('finance_reconciliations', []);
+    return list.filter((r) => r.businessId === businessId);
+  },
+
+  async createReconciliation(rec: FinanceReconciliationRecord): Promise<FinanceReconciliationRecord> {
+    const list = getStored<FinanceReconciliationRecord[]>('finance_reconciliations', []);
+    list.unshift(rec);
+    setStored('finance_reconciliations', list);
+
+    offlineSync.enqueue({
+      collection: 'finance_reconciliations',
+      action: 'create',
+      data: rec as unknown as Record<string, unknown>,
+    });
+
+    if (isFirebaseConfigured() && db) {
+      try {
+        await setDoc(doc(db, 'finance_reconciliations', rec.id), rec);
+      } catch (e) {
+        console.warn('Firebase createReconciliation fallback:', e);
+      }
+    }
+    return rec;
   },
 
   // ==========================================

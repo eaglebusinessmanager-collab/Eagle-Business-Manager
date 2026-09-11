@@ -46,6 +46,8 @@ export interface Product {
   name: string;
   sku: string;
   barcode?: string;
+  batchNumber?: string;
+  expiryDate?: string;
   category: string;
   description: string;
   buyingPrice: number;
@@ -133,7 +135,22 @@ export interface SaleItem {
 }
 
 export type PaymentStatus = 'paid' | 'pending' | 'partial' | 'overdue' | 'cancelled';
-export type PaymentMethod = 'cash' | 'mobile_money' | 'card' | 'bank_transfer';
+export type PaymentMethod =
+  | 'cash'
+  | 'mobile_money'
+  | 'mtn_momo'
+  | 'airtel_money'
+  | 'bank_transfer'
+  | 'card';
+
+export interface SalePaymentRecord {
+  id: string;
+  amount: number;
+  paymentMethod: PaymentMethod | string;
+  date: string;
+  notes?: string;
+  receivedBy?: string;
+}
 
 export interface Sale {
   id: string;
@@ -149,6 +166,7 @@ export interface Sale {
   paymentStatus: PaymentStatus;
   amountPaid?: number;
   paymentMethod: PaymentMethod;
+  paymentRecords?: SalePaymentRecord[];
   notes?: string;
   createdAt: string;
   createdBy: string;
@@ -392,17 +410,53 @@ export interface DocumentPrefixConfig {
   deliveryNotePrefix: string;
 }
 
+export type ReceiptTemplateId =
+  | 'classic'
+  | 'modern'
+  | 'elegant'
+  | 'thermal_58'
+  | 'thermal_80'
+  | 'corporate'
+  | 'retail'
+  | 'wholesale'
+  | 'minimal'
+  | 'executive';
+
 export interface ReceiptCustomizationConfig {
+  businessId?: string;
   businessName?: string;
   logoUrl?: string;
   phone?: string;
   whatsapp?: string;
   address?: string;
   email?: string;
+  website?: string;
+  tagline?: string;
   receiptFooter?: string;
+  footerMessage?: string;
   thankYouMessage?: string;
+  returnPolicy?: string;
   currency?: string;
+  template?: ReceiptTemplateId;
   layout?: 'standard' | 'compact' | 'thermal';
+  paperSize?: '58mm' | '80mm' | 'A4' | 'A5';
+  accentColor?: string;
+  showLogo?: boolean;
+  showTagline?: boolean;
+  showCustomerName?: boolean;
+  showCustomerPhone?: boolean;
+  showStaffName?: boolean;
+  showSku?: boolean;
+  showBarcode?: boolean;
+  showDiscount?: boolean;
+  showTaxNumber?: boolean;
+  taxNumber?: string;
+  taxRatePercent?: number;
+  showPaymentMethod?: boolean;
+  showQrVerification?: boolean;
+  showReturnPolicy?: boolean;
+  customNotes?: string;
+  fontScale?: 'compact' | 'standard' | 'large';
   prefixes?: DocumentPrefixConfig;
 }
 
@@ -485,6 +539,24 @@ export interface CashRegisterSession {
   notes?: string;
   status: 'open' | 'closed';
   denominations?: Record<string, number>;
+}
+
+export interface FinanceReconciliationRecord {
+  id: string;
+  businessId: string;
+  channel: 'cash' | 'mtn_momo' | 'airtel_money' | 'bank_transfer';
+  date: string;
+  openingBalance: number;
+  totalInflows: number;
+  totalOutflows: number;
+  expectedBalance: number;
+  actualCounted: number;
+  variance: number;
+  status: 'balanced' | 'surplus' | 'shortage';
+  reconciledBy: string;
+  notes?: string;
+  denominations?: Record<string, number>;
+  createdAt: string;
 }
 
 export interface PurchaseOrderItem {

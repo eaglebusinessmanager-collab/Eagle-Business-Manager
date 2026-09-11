@@ -95,7 +95,16 @@ export const CustomersPage: React.FC = () => {
   const filteredCustomers = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     return customers.filter((c) => {
-      const matchType = selectedType === 'all' || (c.customerType || 'regular') === selectedType;
+      let matchType = false;
+      if (selectedType === 'all') {
+        matchType = true;
+      } else if (selectedType === 'with_debt') {
+        const custSales = sales.filter((s) => s.customerId === c.id || s.customerName?.toLowerCase() === c.name.toLowerCase());
+        matchType = custSales.some((s) => (s.paymentStatus === 'pending' || s.paymentStatus === 'partial') && (s.total - (s.amountPaid || 0)) > 0);
+      } else {
+        matchType = (c.customerType || 'regular') === selectedType;
+      }
+
       const matchQuery =
         !q ||
         c.name.toLowerCase().includes(q) ||
@@ -105,13 +114,14 @@ export const CustomersPage: React.FC = () => {
 
       return matchType && matchQuery;
     });
-  }, [customers, searchQuery, selectedType]);
+  }, [customers, searchQuery, selectedType, sales]);
 
   const formatCurrency = (val: number) => `${currency} ${val.toLocaleString()}`;
 
   // Customer Types for Filter Chips
   const customerTypes: { label: string; value: string }[] = [
     { label: 'All Recipients', value: 'all' },
+    { label: 'Credit Debts Owed', value: 'with_debt' },
     { label: 'Regular', value: 'regular' },
     { label: 'Retail', value: 'retail' },
     { label: 'Wholesale', value: 'wholesale' },
@@ -220,7 +230,10 @@ export const CustomersPage: React.FC = () => {
             const unpaidSales = historyForCust.filter(
               (s) => s.paymentStatus === 'pending' || s.paymentStatus === 'partial'
             );
-            const pendingBalance = unpaidSales.reduce((acc, s) => acc + s.total, 0);
+            const pendingBalance = unpaidSales.reduce(
+              (acc, s) => acc + (s.total - (s.amountPaid || 0)),
+              0
+            );
 
             return (
               <div
@@ -357,17 +370,26 @@ export const CustomersPage: React.FC = () => {
       />
 
       {/* View Recipient Profile & Purchase History Modal */}
-      <RecipientProfileModal
-        isOpen={!!viewingCustomer}
-        onClose={() => setViewingCustomer(null)}
-        customer={viewingCustomer}
-        sales={sales}
-        onEdit={(cust) => {
-          setViewingCustomer(null);
-          setEditingCustomer(cust);
-          setShowAddModal(true);
-        }}
-      />
+      {viewingCustomer && (
+        <RecipientProfileModal
+          isOpen={!!viewingCustomer}
+          onClose={() => setViewingCustomer(null)}
+          customer={viewingCustomer}
+          sales={sales}
+          invoices={[]}
+          currency={currency}
+          onPaymentRecorded={loadData}
+          onDelete={(cust) => {
+            setViewingCustomer(null);
+            setCustomerToDelete(cust);
+          }}
+          onEdit={(cust) => {
+            setViewingCustomer(null);
+            setEditingCustomer(cust);
+            setShowAddModal(true);
+          }}
+        />
+      )}
 
       {/* Delete Confirmation */}
       <ConfirmationModal

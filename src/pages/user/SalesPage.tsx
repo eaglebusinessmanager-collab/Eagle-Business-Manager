@@ -28,6 +28,7 @@ import { dbService } from '../../services/db';
 import { Customer, Product, Sale, SaleItem } from '../../types';
 import { CameraScannerModal } from '../../components/common/CameraScannerModal';
 import { AddRecipientModal } from '../../components/common/AddRecipientModal';
+import { ReceiptStudioModal } from '../../components/receipts/ReceiptStudioModal';
 
 export const SalesPage: React.FC = () => {
   const { business, user } = useAuth();
@@ -880,199 +881,34 @@ export const SalesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Official Printable Receipt Modal */}
+      {/* Camera Scanner Modal */}
+      {showCameraScanner && (
+        <CameraScannerModal
+          isOpen={showCameraScanner}
+          onClose={() => setShowCameraScanner(false)}
+          onScanSuccess={handleScannedCode}
+          title="Scan Product Barcode or QR"
+          subtitle="Point at any product packaging or shelf tag to add to sale"
+        />
+      )}
+
+      {/* Add Recipient Modal */}
+      {showAddRecipientModal && (
+        <AddRecipientModal
+          isOpen={showAddRecipientModal}
+          onClose={() => setShowAddRecipientModal(false)}
+          onSaved={handleRecipientSaved}
+        />
+      )}
+
+      {/* Official Printable Receipt Studio Modal */}
       {selectedSaleForReceipt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Official Business Receipt
-              </span>
-              <button
-                onClick={() => setSelectedSaleForReceipt(null)}
-                className="rounded-lg p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Printable Receipt Area */}
-            <div id="printable-receipt" className="printable-document flex-1 overflow-y-auto py-4 space-y-4 text-xs font-mono">
-              {/* Official Branding Header */}
-              <div className="text-center border-b border-dashed border-slate-300 dark:border-slate-700 pb-3">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-[10px] font-black uppercase tracking-wider mb-1.5">
-                  Eagle Business Manager
-                </div>
-                <h2 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-tight">
-                  {business?.name || 'Eagle Business Store'}
-                </h2>
-                {business?.address && <p className="text-[11px] text-slate-500">{business.address}</p>}
-                {business?.phone && <p className="text-[11px] text-slate-500">Tel: {business.phone}</p>}
-                <div className="mt-2 pt-2 border-t border-dotted border-slate-200 dark:border-slate-800 flex justify-between text-[10px] text-slate-400 font-mono">
-                  <span>RECEIPT: #{selectedSaleForReceipt.saleNumber}</span>
-                  <span>{new Date(selectedSaleForReceipt.createdAt).toLocaleDateString()} {new Date(selectedSaleForReceipt.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-              </div>
-
-              {/* Recipient / Customer Details */}
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700/60 text-[11px] space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Recipient:</span>
-                  <span className="font-bold text-slate-900 dark:text-white uppercase">
-                    {selectedSaleForReceipt.customerName || 'WALK-IN CUSTOMER'}
-                  </span>
-                </div>
-                {selectedSaleForReceipt.customerPhone && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Phone:</span>
-                    <span className="font-mono text-slate-700 dark:text-slate-300">
-                      {selectedSaleForReceipt.customerPhone}
-                    </span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Payment Method:</span>
-                  <span className="font-bold uppercase text-slate-700 dark:text-slate-300">
-                    {selectedSaleForReceipt.paymentMethod.replace('_', ' ')}
-                  </span>
-                </div>
-              </div>
-
-              {/* Items Table */}
-              <div className="border-t border-b border-dashed border-slate-300 dark:border-slate-700 py-2.5 space-y-1.5">
-                <div className="flex justify-between text-[10px] font-bold text-slate-400">
-                  <span>ITEM</span>
-                  <span>QTY x UNIT</span>
-                  <span>TOTAL</span>
-                </div>
-                {selectedSaleForReceipt.items.map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-start text-[11px]">
-                    <span className="truncate max-w-[160px] font-medium text-slate-800 dark:text-slate-200">
-                      {item.productName}
-                    </span>
-                    <span className="text-slate-500">
-                      {item.quantity} x {item.unitPrice.toLocaleString()}
-                    </span>
-                    <span className="font-bold font-mono text-slate-900 dark:text-white">
-                      {(item.total || item.quantity * item.unitPrice).toLocaleString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Financial Totals */}
-              <div className="space-y-1 text-[11px]">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Subtotal:</span>
-                  <span className="font-mono">{formatCurrency(selectedSaleForReceipt.subtotal)}</span>
-                </div>
-                {selectedSaleForReceipt.discount > 0 && (
-                  <div className="flex justify-between text-rose-500">
-                    <span>Discount:</span>
-                    <span className="font-mono">-{formatCurrency(selectedSaleForReceipt.discount)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-sm font-black pt-1.5 border-t border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white">
-                  <span>TOTAL ({currency}):</span>
-                  <span className="font-mono text-blue-600 dark:text-blue-400">
-                    {selectedSaleForReceipt.total.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between text-[11px] pt-1">
-                  <span className="text-slate-500">Amount Paid:</span>
-                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                    {formatCurrency(selectedSaleForReceipt.paymentStatus === 'paid' ? selectedSaleForReceipt.total : 0)}
-                  </span>
-                </div>
-                {selectedSaleForReceipt.paymentStatus !== 'paid' && (
-                  <div className="flex justify-between text-[11px] text-rose-600 dark:text-rose-400">
-                    <span>Balance Due:</span>
-                    <span className="font-mono font-bold">
-                      {formatCurrency(selectedSaleForReceipt.total)}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Status Pill in Receipt */}
-              <div className="text-center pt-2">
-                <span
-                  className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                    selectedSaleForReceipt.paymentStatus === 'paid'
-                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                      : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-                  }`}
-                >
-                  Payment Status: {selectedSaleForReceipt.paymentStatus}
-                </span>
-              </div>
-
-              {/* Footer text */}
-              <div className="text-center text-[10px] text-slate-400 pt-2 border-t border-dashed border-slate-300 dark:border-slate-700 space-y-0.5">
-                <p className="font-medium text-slate-600 dark:text-slate-400">
-                  {business?.receiptFooter || 'Thank you for shopping with us!'}
-                </p>
-                <p className="text-[9px] text-slate-400">Official Receipt • Powered by Eagle Business Manager</p>
-              </div>
-            </div>
-
-            {/* Receipt Modal Footer Actions - 4 One-Tap Action Buttons */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2 no-print">
-              {selectedSaleForReceipt.paymentStatus !== 'paid' && (
-                <button
-                  type="button"
-                  onClick={() => handleUpdatePaymentStatus(selectedSaleForReceipt.id, 'paid')}
-                  className="w-full py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition"
-                >
-                  Mark as Fully Paid
-                </button>
-              )}
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                <button
-                  id="receipt-download-pdf"
-                  type="button"
-                  onClick={handleDownloadPdf}
-                  className="flex items-center justify-center gap-1 px-2.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white text-[11px] font-bold transition active:scale-95 shadow-xs cursor-pointer"
-                  title="Download / Save as PDF via Print Dialog"
-                >
-                  <FileDown className="h-3.5 w-3.5" />
-                  <span>PDF</span>
-                </button>
-                <button
-                  id="receipt-share-btn"
-                  type="button"
-                  onClick={() => handleShareReceipt(selectedSaleForReceipt)}
-                  className="flex items-center justify-center gap-1 px-2.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold transition active:scale-95 shadow-xs cursor-pointer"
-                  title="Share receipt text or copy to clipboard"
-                >
-                  <Share2 className="h-3.5 w-3.5" />
-                  <span>SHARE</span>
-                </button>
-                <button
-                  id="receipt-whatsapp-btn"
-                  type="button"
-                  onClick={() => shareReceiptViaWhatsApp(selectedSaleForReceipt)}
-                  className="flex items-center justify-center gap-1 px-2.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition active:scale-95 shadow-xs cursor-pointer"
-                  title="Send receipt directly to recipient on WhatsApp"
-                >
-                  <MessageCircle className="h-3.5 w-3.5" />
-                  <span>WHATSAPP</span>
-                </button>
-                <button
-                  id="receipt-print-btn"
-                  type="button"
-                  onClick={() => window.print()}
-                  className="flex items-center justify-center gap-1 px-2.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold transition active:scale-95 shadow-xs cursor-pointer"
-                  title="Print receipt on thermal or standard printer"
-                >
-                  <Printer className="h-3.5 w-3.5" />
-                  <span>PRINT</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ReceiptStudioModal
+          isOpen={!!selectedSaleForReceipt}
+          onClose={() => setSelectedSaleForReceipt(null)}
+          sale={selectedSaleForReceipt}
+          business={business}
+        />
       )}
     </div>
   );
